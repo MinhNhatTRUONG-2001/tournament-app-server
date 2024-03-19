@@ -18,7 +18,6 @@ namespace tournament_app_server.Controllers
             _dbContext = dbContext;
         }
 
-        // GET: /tournaments
         [HttpGet("all/{token}")]
         public async Task<ActionResult<IEnumerable<Tournament>>> GetTournamentsByUserId(string token)
         {
@@ -33,7 +32,9 @@ namespace tournament_app_server.Controllers
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
 
-                return await _dbContext.Tournaments.Where(t => t.user_id == userId).ToListAsync();
+                return await _dbContext.Tournaments
+                    .Where(t => t.user_id == userId)
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
@@ -41,7 +42,6 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        // GET /tournaments/5
         [HttpGet("{id}/{token}")]
         public async Task<ActionResult<Tournament>> GetTournamentById(int id, string token)
         {
@@ -56,7 +56,6 @@ namespace tournament_app_server.Controllers
                 int userId = (int)payload["id"];
 
                 var tournament = await _dbContext.Tournaments.FindAsync(id);
-
                 if (tournament == null)
                 {
                     return NotFound();
@@ -65,6 +64,7 @@ namespace tournament_app_server.Controllers
                 {
                     throw new Exception("Cannot access or modify this tournament by your token.");
                 }
+
                 return tournament;
             }
             catch (Exception ex)
@@ -73,7 +73,6 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        // POST /tournaments
         [HttpPost("{token}")]
         public async Task<ActionResult<Tournament>> CreateTournament(string token, [FromBody] TournamentDTO tournamentDto)
         {
@@ -89,10 +88,17 @@ namespace tournament_app_server.Controllers
 
                 Tournament tournament = new Tournament();
                 tournament.name = tournamentDto.name;
-                tournament.start_date = DateTimeOffset.Parse(tournamentDto.start_date).ToUniversalTime();
-                tournament.end_date = DateTimeOffset.Parse(tournamentDto.end_date).ToUniversalTime();
+                if (tournamentDto.start_date != null)
+                {
+                    tournament.start_date = DateTimeOffset.Parse(tournamentDto.start_date).ToUniversalTime();
+                }
+                if (tournamentDto.end_date != null)
+                {
+                    tournament.end_date = DateTimeOffset.Parse(tournamentDto.end_date).ToUniversalTime();
+                }
                 tournament.places = tournamentDto.places;
                 tournament.user_id = userId;
+                tournament.description = tournamentDto.description;
                 _dbContext.Tournaments.Add(tournament);
                 await _dbContext.SaveChangesAsync();
                 return CreatedAtAction(nameof(GetTournamentById), new { tournament.id, token }, tournament);
@@ -103,7 +109,6 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        // PUT /tournaments/5
         [HttpPut("{id}/{token}")]
         public async Task<ActionResult<Tournament>> EditTournament(int id, string token, [FromBody] TournamentDTO tournamentDto)
         {
@@ -127,10 +132,17 @@ namespace tournament_app_server.Controllers
                     throw new Exception("Cannot access or modify this tournament by your token.");
                 }
                 tournament.name = tournamentDto.name;
-                tournament.start_date = DateTimeOffset.Parse(tournamentDto.start_date).ToUniversalTime();
-                tournament.end_date = DateTimeOffset.Parse(tournamentDto.end_date).ToUniversalTime();
+                if (tournamentDto.start_date != null)
+                {
+                    tournament.start_date = DateTimeOffset.Parse(tournamentDto.start_date).ToUniversalTime();
+                }
+                if (tournamentDto.end_date != null)
+                {
+                    tournament.end_date = DateTimeOffset.Parse(tournamentDto.end_date).ToUniversalTime();
+                }
                 tournament.places = tournamentDto.places;
                 tournament.user_id = userId;
+                tournament.description = tournamentDto.description;
                 await _dbContext.SaveChangesAsync();
                 return new ActionResult<Tournament>(tournament);
             }
@@ -140,7 +152,6 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        // DELETE /tournaments/5
         [HttpDelete("{id}/{token}")]
         public async Task<IActionResult> DeleteTournament(int id, string token)
         {
@@ -164,6 +175,17 @@ namespace tournament_app_server.Controllers
                 {
                     throw new Exception("Cannot access or modify this tournament by your token.");
                 }
+                var stages = await _dbContext.Stages
+                    .Where(s => s.tournament_id == id)
+                    .ToListAsync();
+                foreach (var s in stages)
+                {
+                    var matchSes = await _dbContext.MatchSes
+                        .Where(mse => mse.stage_id == s.id)
+                        .ToListAsync();
+                    _dbContext.MatchSes.RemoveRange(matchSes);
+                }
+                _dbContext.Stages.RemoveRange(stages);
                 _dbContext.Tournaments.Remove(tournament);
                 await _dbContext.SaveChangesAsync();
                 return NoContent();
