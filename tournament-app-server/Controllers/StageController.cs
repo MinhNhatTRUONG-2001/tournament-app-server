@@ -19,7 +19,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpGet("all/{tournament_id}/{token}")]
-        public async Task<ActionResult<IEnumerable<Stage>>> GetStagesByTournamentId(int tournament_id, string token)
+        public async Task<ActionResult<IEnumerable<Stage>>> GetStagesByTournamentId(long tournament_id, string token)
         {
             if (_dbContext.Stages == null)
             {
@@ -53,7 +53,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpGet("{id}/{token}")]
-        public async Task<ActionResult<Stage>> GetStageById(int id, string token)
+        public async Task<ActionResult<Stage>> GetStageById(long id, string token)
         {
             if (_dbContext.Stages == null)
             {
@@ -122,12 +122,12 @@ namespace tournament_app_server.Controllers
                 stage.tournament_id = stageDto.tournament_id;
                 short number_of_rounds = (short)Math.Ceiling(Math.Log2(stageDto.number_of_teams_per_group));
                 short ideal_number_of_teams_per_group = (short)Math.Pow(2, number_of_rounds);
-                short currentMaxStageOrder = await _dbContext.Stages
+                var maxStageOrder = await _dbContext.Stages
                     .Where(s => s.tournament_id == tournament.id)
                     .OrderBy(s => s.stage_order)
-                    .Select(s => s.stage_order)
-                    .DefaultIfEmpty((short)0)
-                    .FirstAsync();
+                    .Select(s => (short?)s.stage_order)
+                    .MaxAsync();
+                short currentMaxStageOrder = maxStageOrder ?? 0;
                 if (ideal_number_of_teams_per_group >= 2 && ideal_number_of_teams_per_group <= 128)
                 {
                     stage.number_of_teams_per_group = ideal_number_of_teams_per_group;
@@ -158,26 +158,27 @@ namespace tournament_app_server.Controllers
                     s.stage_order++;
                 }
                 await _dbContext.SaveChangesAsync();
-
-                if (stage.format_id == 1) //Single elimination
-                {
-                    stage.include_third_place_match = stageDto.include_third_place_match;
-                }
-                foreach(short n in stage.number_of_legs_per_round) {
+                foreach(short n in stageDto.number_of_legs_per_round) {
                     if (n < 1 || n > 3)
                     {
                         throw new Exception("Invalid number_of_legs_per_round.");
                     }
                 }
-                stage.number_of_legs_per_round = stageDto.number_of_legs_per_round;
-                stage.best_of_per_round = stageDto.best_of_per_round;
-                if (stageDto.third_place_match_number_of_legs < 1 || stageDto.third_place_match_number_of_legs > 3)
-                {
-                    throw new Exception("Invalid third_place_match_number_of_legs.");
-                }
-                stage.third_place_match_number_of_legs = stageDto.third_place_match_number_of_legs;
-                stage.third_place_match_best_of = stageDto.third_place_match_best_of;
+                stage.number_of_legs_per_round = stageDto.number_of_legs_per_round.ToArray();
+                stage.best_of_per_round = stageDto.best_of_per_round.ToArray();
                 stage.description = stageDto.description;
+
+                if (stage.format_id == 1) //Single elimination
+                {
+                    stage.include_third_place_match = stageDto.include_third_place_match;
+                    if (stageDto.third_place_match_number_of_legs < 1 || stageDto.third_place_match_number_of_legs > 3)
+                    {
+                        throw new Exception("Invalid third_place_match_number_of_legs.");
+                    }
+                    stage.third_place_match_number_of_legs = stageDto.third_place_match_number_of_legs;
+                    stage.third_place_match_best_of = stageDto.third_place_match_best_of;
+                }
+
                 _dbContext.Stages.Add(stage);
                 await _dbContext.SaveChangesAsync();
 
@@ -200,7 +201,6 @@ namespace tournament_app_server.Controllers
                                     group_number = i
                                 };
                                 _dbContext.MatchSes.Add(matchSe);
-                                await _dbContext.SaveChangesAsync();
                             }
                             ideal_number_of_teams_per_group /= 2;
                         }
@@ -218,13 +218,13 @@ namespace tournament_app_server.Controllers
                                     group_number = i
                                 };
                                 _dbContext.MatchSes.Add(thirdPlaceMatchSe);
-                                await _dbContext.SaveChangesAsync();
                             }
                         }
                     }
+                    await _dbContext.SaveChangesAsync();
                 }
 
-                return CreatedAtAction(nameof(GetStageById), new { stage.id, token }, tournament);
+                return CreatedAtAction(nameof(GetStageById), new { stage.id, token }, stage);
             }
             catch (Exception ex)
             {
@@ -233,7 +233,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpPut("{id}/{token}")]
-        public async Task<ActionResult<Stage>> EditStage(int id, string token, [FromBody] StageDTO stageDto)
+        public async Task<ActionResult<Stage>> EditStage(long id, string token, [FromBody] StageDTO stageDto)
         {
             if (_dbContext.Stages == null)
             {
@@ -310,12 +310,12 @@ namespace tournament_app_server.Controllers
                         throw new Exception("Stages are not from the same tournament.");
                     }
                 }
-                short currentMaxStageOrder = await _dbContext.Stages
-                    .Where(s => s.tournament_id == tournamentId)
+                var maxStageOrder = await _dbContext.Stages
+                    .Where(s => s.tournament_id == tournament.id)
                     .OrderBy(s => s.stage_order)
-                    .Select(s => s.stage_order)
-                    .DefaultIfEmpty((short)0)
-                    .FirstAsync();
+                    .Select(s => (short?)s.stage_order)
+                    .MaxAsync();
+                short currentMaxStageOrder = maxStageOrder ?? 0;
                 foreach (var s in stageOrderDto)
                 {
                     if (s.stage_order < 1 || s.stage_order > currentMaxStageOrder)
@@ -346,7 +346,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpDelete("{id}/{token}")]
-        public async Task<IActionResult> DeleteStage(int id, string token)
+        public async Task<IActionResult> DeleteStage(long id, string token)
         {
             if (_dbContext.Stages == null)
             {

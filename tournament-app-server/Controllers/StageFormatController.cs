@@ -36,7 +36,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<StageFormat>> GetStageFormatById(int id)
+        public async Task<ActionResult<StageFormat>> GetStageFormatById(long id)
         {
             if (_dbContext.Tournaments == null)
             {

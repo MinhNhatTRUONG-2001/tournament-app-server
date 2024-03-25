@@ -20,9 +20,9 @@ namespace tournament_app_server
             modelBuilder.Entity<Tournament>().ToTable("tournaments");
             modelBuilder.Entity<Stage>().ToTable("stages");
             modelBuilder.Entity<StageFormat>().ToTable("stage_format");
-            modelBuilder.Entity<MatchSe>().ToTable("match_se");
-            modelBuilder.Entity<StageUserId>().ToView("stage_user_id");
-            modelBuilder.Entity<MatchSeUserId>().ToView("matchse_user_id");
+            modelBuilder.Entity<MatchSe>().ToTable("matches_se");
+            modelBuilder.Entity<StageUserId>().ToView("stage_user_id").HasNoKey();
+            modelBuilder.Entity<MatchSeUserId>().ToView("matchse_user_id").HasNoKey();
             base.OnModelCreating(modelBuilder);
         }
     }

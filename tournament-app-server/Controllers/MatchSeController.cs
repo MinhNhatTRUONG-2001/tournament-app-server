@@ -19,7 +19,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpGet("all/{stage_id}/{token}")]
-        public async Task<ActionResult<IEnumerable<MatchSe>>> GetMatchesByStageId(int stage_id, string token)
+        public async Task<ActionResult<IEnumerable<MatchSe>>> GetMatchesByStageId(long stage_id, string token)
         {
             if (_dbContext.MatchSes == null)
             {
@@ -54,7 +54,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpGet("{id}/{token}")]
-        public async Task<ActionResult<MatchSe>> GetMatchById(int id, string token)
+        public async Task<ActionResult<MatchSe>> GetMatchById(long id, string token)
         {
             if (_dbContext.MatchSes == null)
             {
@@ -87,7 +87,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpPut("{id}/team_name/{token}")]
-        public async Task<ActionResult<MatchSe>> EditTeamName(int id, string token, [FromBody] MatchSeDTO matchSeDto)
+        public async Task<ActionResult<MatchSe>> EditTeamName(long id, string token, [FromBody] MatchSeDTO matchSeDto)
         {
             if (_dbContext.MatchSes == null)
             {
@@ -186,7 +186,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpPut("{id}/match_info/{token}")]
-        public async Task<ActionResult<MatchSe>> EditMatchInfo(int id, string token, [FromBody] MatchSeDTO matchSeDto)
+        public async Task<ActionResult<MatchSe>> EditMatchInfo(long id, string token, [FromBody] MatchSeDTO matchSeDto)
         {
             if (_dbContext.MatchSes == null)
             {
@@ -274,23 +274,59 @@ namespace tournament_app_server.Controllers
                     matchSeNumberOfLegs = (int)stage.third_place_match_number_of_legs;
                     matchSeBestOf = (int)stage.third_place_match_best_of;
                 }
-                if (matchSeDto.team_1_score.Length != matchSeNumberOfLegs || matchSeDto.team_2_score.Length != matchSeNumberOfLegs
-                    || matchSeDto.team_1_subscores.Length != matchSeNumberOfLegs || matchSeDto.team_2_subscores.Length != matchSeNumberOfLegs)
+                if (matchSeDto.team_1_scores.Length != matchSeNumberOfLegs || matchSeDto.team_2_scores.Length != matchSeNumberOfLegs
+                    || matchSeDto.team_1_subscores.Count(s => s == null) < matchSeNumberOfLegs - 1 || matchSeDto.team_2_subscores.Count(s => s == null) != matchSeNumberOfLegs - 1)
                 {
                     throw new Exception("Scores provided mismatch number of legs in this round.");
                 }
+                List<long[]> team1SubscoresMatrix = new List<long[]>();
+                List<long> subarray1 = new List<long>();
+                foreach (var ss in matchSeDto.team_1_subscores)
+                {
+                    if (ss != null)
+                    {
+                        subarray1.Add(ss);
+                    }
+                    else
+                    {
+                        team1SubscoresMatrix.Add(subarray1.ToArray());
+                        subarray1.Clear();
+                    }
+                }
+                if (subarray1.Count > 0)
+                {
+                    team1SubscoresMatrix.Add(subarray1.ToArray());
+                }
+                List<long[]> team2SubscoresMatrix = new List<long[]>();
+                List<long> subarray2 = new List<long>();
+                foreach (var ss in matchSeDto.team_2_subscores)
+                {
+                    if (ss != null)
+                    {
+                        subarray2.Add(ss);
+                    }
+                    else
+                    {
+                        team2SubscoresMatrix.Add(subarray2.ToArray());
+                        subarray2.Clear();
+                    }
+                }
+                if (subarray2.Count > 0)
+                {
+                    team2SubscoresMatrix.Add(subarray2.ToArray());
+                }
                 for (int i = 0; i < matchSeNumberOfLegs; i++)
                 {
-                    if (matchSeDto.team_1_subscores[i].LongLength != matchSeDto.team_1_score[i]
-                        || matchSeDto.team_2_subscores[i].LongLength != matchSeDto.team_2_score[i])
+                    if (team1SubscoresMatrix.LongCount() != matchSeDto.team_1_scores[i]
+                        || team2SubscoresMatrix.LongCount() != matchSeDto.team_2_scores[i])
                     {
                         throw new Exception("Subscores provided mismatch scores provided.");
                     }
                     if (matchSeBestOf > 0)
                     {
-                        if (matchSeDto.team_1_score[i] + matchSeDto.team_2_score[i] > matchSeBestOf
-                            || matchSeDto.team_1_score[i] > Math.Floor((decimal)matchSeBestOf / 2) + 1
-                            || matchSeDto.team_2_score[i] > Math.Floor((decimal)matchSeBestOf / 2) + 1)
+                        if (matchSeDto.team_1_scores[i] + matchSeDto.team_2_scores[i] > matchSeBestOf
+                            || matchSeDto.team_1_scores[i] > Math.Floor((decimal)matchSeBestOf / 2) + 1
+                            || matchSeDto.team_2_scores[i] > Math.Floor((decimal)matchSeBestOf / 2) + 1)
                         {
                             throw new Exception("Subscores provided mismatch best of in this round.");
                         }
@@ -301,8 +337,8 @@ namespace tournament_app_server.Controllers
                 matchSe.team_1 = matchSeDto.team_1;
                 matchSe.team_2 = matchSeDto.team_2;
                 matchSe.winner = matchSeDto.winner;
-                matchSe.team_1_score = matchSeDto.team_1_score;
-                matchSe.team_2_score = matchSeDto.team_2_score;
+                matchSe.team_1_scores = matchSeDto.team_1_scores;
+                matchSe.team_2_scores = matchSeDto.team_2_scores;
                 matchSe.team_1_subscores = matchSeDto.team_1_subscores;
                 matchSe.team_2_subscores = matchSeDto.team_2_subscores;
                 await _dbContext.SaveChangesAsync();
@@ -322,8 +358,8 @@ namespace tournament_app_server.Controllers
                 if (matchSe.winner != old_winner)
                 {
                     nextMatchSe.winner = null;
-                    nextMatchSe.team_1_score = null;
-                    nextMatchSe.team_2_score = null;
+                    nextMatchSe.team_1_scores = null;
+                    nextMatchSe.team_2_scores = null;
                     nextMatchSe.team_1_subscores = null;
                     nextMatchSe.team_2_subscores = null;
                 }
@@ -344,8 +380,8 @@ namespace tournament_app_server.Controllers
                             resetMatchSe.team_2 = null;
                         }
                         resetMatchSe.winner = null;
-                        resetMatchSe.team_1_score = null;
-                        resetMatchSe.team_2_score = null;
+                        resetMatchSe.team_1_scores = null;
+                        resetMatchSe.team_2_scores = null;
                         resetMatchSe.team_1_subscores = null;
                         resetMatchSe.team_2_subscores = null;
                     }

@@ -43,7 +43,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpGet("{id}/{token}")]
-        public async Task<ActionResult<Tournament>> GetTournamentById(int id, string token)
+        public async Task<ActionResult<Tournament>> GetTournamentById(long id, string token)
         {
             if (_dbContext.Tournaments == null)
             {
@@ -110,7 +110,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpPut("{id}/{token}")]
-        public async Task<ActionResult<Tournament>> EditTournament(int id, string token, [FromBody] TournamentDTO tournamentDto)
+        public async Task<ActionResult<Tournament>> EditTournament(long id, string token, [FromBody] TournamentDTO tournamentDto)
         {
             if (_dbContext.Tournaments == null)
             {
@@ -153,7 +153,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpDelete("{id}/{token}")]
-        public async Task<IActionResult> DeleteTournament(int id, string token)
+        public async Task<IActionResult> DeleteTournament(long id, string token)
         {
             if (_dbContext.Tournaments == null)
             {

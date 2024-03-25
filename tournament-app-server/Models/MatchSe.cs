@@ -1,4 +1,7 @@
-﻿namespace tournament_app_server.Models
+﻿using System.Text.Json.Serialization;
+using System.Text.Json;
+
+namespace tournament_app_server.Models
 {
     public class MatchSe
     {
@@ -9,10 +12,10 @@
         public string? team_1 { get; set; }
         public string? team_2 { get; set; }
         public string? winner { get; set; }
-        public long[]? team_1_score { get; set; }
-        public long[]? team_2_score { get; set; }
-        public long[][]? team_1_subscores { get; set; }
-        public long[][]? team_2_subscores { get; set; }
+        public long[]? team_1_scores { get; set; }
+        public long[]? team_2_scores { get; set; }
+        public long[]? team_1_subscores { get; set; }
+        public long[]? team_2_subscores { get; set; }
         public short best_of { get; set; }
         public short group_number { get; set; }
         public DateTimeOffset? start_datetime { get; set; }
