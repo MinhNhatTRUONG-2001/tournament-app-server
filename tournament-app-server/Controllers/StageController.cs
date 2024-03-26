@@ -185,9 +185,9 @@ namespace tournament_app_server.Controllers
                 if (stage.format_id == 1) //Single elimination
                 {
                     //Generate single elimiation matches (except 3rd-place match)
-                    short number_of_pairs_per_round = (short)(ideal_number_of_teams_per_group / 2);
                     for (short i = 1; i <= stage.number_of_groups; i++)
                     {
+                        short number_of_pairs_per_round = (short)(ideal_number_of_teams_per_group / 2);
                         for (short j = 1; j <= number_of_rounds; j++)
                         {
                             for (short k = 1; k <= number_of_pairs_per_round; k++)
@@ -202,7 +202,7 @@ namespace tournament_app_server.Controllers
                                 };
                                 _dbContext.MatchSes.Add(matchSe);
                             }
-                            ideal_number_of_teams_per_group /= 2;
+                            number_of_pairs_per_round /= 2;
                         }
                         //3rd-place match generation
                         if (stage.include_third_place_match != null)
@@ -233,7 +233,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpPut("{id}/{token}")]
-        public async Task<ActionResult<Stage>> EditStage(long id, string token, [FromBody] StageDTO stageDto)
+        public async Task<ActionResult<Stage>> EditStage(long id, string token, [FromBody] StageEditDTO stageEditDto)
         {
             if (_dbContext.Stages == null)
             {
@@ -244,7 +244,7 @@ namespace tournament_app_server.Controllers
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
-                var tournament = await _dbContext.Tournaments.FindAsync(stageDto.tournament_id);
+                var tournament = await _dbContext.Tournaments.FindAsync(stageEditDto.tournament_id);
                 if (tournament == null)
                 {
                     return NotFound();
@@ -255,17 +255,17 @@ namespace tournament_app_server.Controllers
                 }
 
                 var stage = await _dbContext.Stages.FindAsync(id);
-                stage.name = stageDto.name;
-                if (stageDto.start_date != null)
+                stage.name = stageEditDto.name;
+                if (stageEditDto.start_date != null)
                 {
-                    stage.start_date = DateTimeOffset.Parse(stageDto.start_date).ToUniversalTime();
+                    stage.start_date = DateTimeOffset.Parse(stageEditDto.start_date).ToUniversalTime();
                 }
-                if (stageDto.end_date != null)
+                if (stageEditDto.end_date != null)
                 {
-                    stage.end_date = DateTimeOffset.Parse(stageDto.end_date).ToUniversalTime();
+                    stage.end_date = DateTimeOffset.Parse(stageEditDto.end_date).ToUniversalTime();
                 }
-                stage.places = stageDto.places;
-                stage.description = stageDto.description;
+                stage.places = stageEditDto.places;
+                stage.description = stageEditDto.description;
                 await _dbContext.SaveChangesAsync();
                 return new ActionResult<Stage>(stage);
             }
