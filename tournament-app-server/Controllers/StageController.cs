@@ -197,6 +197,7 @@ namespace tournament_app_server.Controllers
                                     stage_id = stage.id,
                                     round_number = j,
                                     match_number = k,
+                                    number_of_legs = stage.number_of_legs_per_round[j - 1],
                                     best_of = stage.best_of_per_round[j - 1],
                                     group_number = i
                                 };
@@ -214,6 +215,7 @@ namespace tournament_app_server.Controllers
                                     stage_id = stage.id,
                                     round_number = (short)(number_of_rounds + 1),
                                     match_number = 1,
+                                    number_of_legs = (short)stage.third_place_match_number_of_legs,
                                     best_of = (short)stage.third_place_match_best_of,
                                     group_number = i
                                 };

@@ -87,7 +87,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpPut("{id}/team_name/{token}")]
-        public async Task<ActionResult<MatchSe>> EditTeamName(long id, string token, [FromBody] MatchSeDTO matchSeDto)
+        public async Task<ActionResult<MatchSe>> EditTeamName(long id, string token, [FromBody] MatchSeEditTeamNameDTO matchSeEditTeamNameDto)
         {
             if (_dbContext.MatchSes == null)
             {
@@ -123,57 +123,77 @@ namespace tournament_app_server.Controllers
                 //Check distinct team names in a stage
                 var teamPairs = await _dbContext.MatchSes
                     .Where(mse => mse.stage_id == matchSe.stage_id && mse.round_number == 1)
-                    .Select(mse => new { mse.team_1, mse.team_2 })
+                    .Select(mse => new { mse.id, mse.team_1, mse.team_2 })
                     .ToListAsync();
-                List<string> teamNames = new List<string>();
                 foreach (var pair in teamPairs)
                 {
-                    teamNames.Add(pair.team_1);
-                    teamNames.Add(pair.team_2);
+                    if (matchSeEditTeamNameDto.team_1 != null)
+                    {
+                        if ((matchSeEditTeamNameDto.team_1 == pair.team_1 && id != pair.id) || (matchSeEditTeamNameDto.team_1 == pair.team_2 && id == pair.id))
+                        {
+                            throw new Exception("Team name(s) has already been in this stage");
+                        }
+                    }
+                    if (matchSeEditTeamNameDto.team_2 != null)
+                    {
+                        if ((matchSeEditTeamNameDto.team_2 == pair.team_2 && id != pair.id) || (matchSeEditTeamNameDto.team_2 == pair.team_1 && id == pair.id))
+                        {
+                            throw new Exception("Team name(s) has already been in this stage");
+                        }
+                    }
                 }
-                if (matchSeDto.team_1 != null && teamNames.Contains(matchSeDto.team_1) 
-                    || matchSeDto.team_2 != null && teamNames.Contains(matchSeDto.team_2))
-                {
-                    throw new Exception("Team name has already been in this stage");
-                }
-                
+
                 //Change team name
                 string old_team_1_name = matchSe.team_1;
                 string old_team_2_name = matchSe.team_2;
-                if (matchSeDto.team_1 != null && matchSeDto.team_1 != matchSe.team_1)
+                if (matchSeEditTeamNameDto.team_1 != null && matchSeEditTeamNameDto.team_1 != matchSe.team_1)
                 {
-                    matchSe.team_1 = matchSeDto.team_1;
+                    matchSe.team_1 = matchSeEditTeamNameDto.team_1;
                     var otherMatchSe1 = await _dbContext.MatchSes
                         .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_1 == old_team_1_name)
                         .ToListAsync();
                     foreach (var m in otherMatchSe1)
                     {
-                        m.team_1 = matchSeDto.team_1;
+                        m.team_1 = matchSeEditTeamNameDto.team_1;
                     }
                     var otherMatchSe2 = await _dbContext.MatchSes
                         .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_2 == old_team_1_name)
                         .ToListAsync();
                     foreach (var m in otherMatchSe2)
                     {
-                        m.team_2 = matchSeDto.team_1;
+                        m.team_2 = matchSeEditTeamNameDto.team_1;
+                    }
+                    var otherMatchSeWinner = await _dbContext.MatchSes
+                        .Where(mse => mse.stage_id == matchSe.stage_id && mse.winner == old_team_1_name)
+                        .ToListAsync();
+                    foreach (var m in otherMatchSeWinner)
+                    {
+                        m.winner = matchSeEditTeamNameDto.team_1;
                     }
                 }
-                if (matchSeDto.team_2 != null && matchSeDto.team_2 != matchSe.team_2)
+                if (matchSeEditTeamNameDto.team_2 != null && matchSeEditTeamNameDto.team_2 != matchSe.team_2)
                 {
-                    matchSe.team_2 = matchSeDto.team_2;
+                    matchSe.team_2 = matchSeEditTeamNameDto.team_2;
                     var otherMatchSe1 = await _dbContext.MatchSes
                         .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_1 == old_team_2_name)
                         .ToListAsync();
                     foreach (var m in otherMatchSe1)
                     {
-                        m.team_1 = matchSeDto.team_2;
+                        m.team_1 = matchSeEditTeamNameDto.team_2;
                     }
                     var otherMatchSe2 = await _dbContext.MatchSes
                         .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_2 == old_team_2_name)
                         .ToListAsync();
                     foreach (var m in otherMatchSe2)
                     {
-                        m.team_2 = matchSeDto.team_2;
+                        m.team_2 = matchSeEditTeamNameDto.team_2;
+                    }
+                    var otherMatchSeWinner = await _dbContext.MatchSes
+                        .Where(mse => mse.stage_id == matchSe.stage_id && mse.winner == old_team_2_name)
+                        .ToListAsync();
+                    foreach (var m in otherMatchSeWinner)
+                    {
+                        m.winner = matchSeEditTeamNameDto.team_2;
                     }
                 }
                 await _dbContext.SaveChangesAsync();

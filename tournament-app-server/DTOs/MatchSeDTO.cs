@@ -12,6 +12,7 @@
         public long[]? team_2_scores { get; set; }
         public long[]? team_1_subscores { get; set; }
         public long[]? team_2_subscores { get; set; }
+        public short number_of_legs { get; set; }
         public short best_of { get; set; }
         public short group_number { get; set; }
         public string? start_datetime { get; set; }
