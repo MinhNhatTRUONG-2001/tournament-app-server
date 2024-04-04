@@ -192,11 +192,34 @@ namespace tournament_app_server.Controllers
                         {
                             for (short k = 1; k <= number_of_pairs_per_round; k++)
                             {
+                                List<long> initialTeam1Scores = new List<long>(), initialTeam2Scores = new List<long>();
+                                for (int a = 0; a < stage.number_of_legs_per_round[j - 1]; a++)
+                                {
+                                    initialTeam1Scores.Add(0);
+                                    initialTeam2Scores.Add(0);
+                                }
+                                long[] initialTeam1ScoresArray = initialTeam1Scores.ToArray();
+                                long[] initialTeam2ScoresArray = initialTeam2Scores.ToArray();
+                                List<long> initialTeam1Subscores = new List<long>(), initialTeam2Subscores = new List<long>();
+                                if (stage.best_of_per_round[j - 1] > 0)
+                                {
+                                    for (int a = 0; a < stage.number_of_legs_per_round[j - 1] * stage.best_of_per_round[j - 1]; a++)
+                                    {
+                                        initialTeam1Subscores.Add(0);
+                                        initialTeam2Subscores.Add(0);
+                                    }
+                                }
+                                long[] initialTeam1SubscoresArray = initialTeam1Subscores.ToArray();
+                                long[] initialTeam2SubscoresArray = initialTeam2Subscores.ToArray();
                                 MatchSe matchSe = new MatchSe
                                 {
                                     stage_id = stage.id,
                                     round_number = j,
                                     match_number = k,
+                                    team_1_scores = initialTeam1ScoresArray,
+                                    team_2_scores = initialTeam2ScoresArray,
+                                    team_1_subscores = initialTeam1SubscoresArray,
+                                    team_2_subscores = initialTeam2SubscoresArray,
                                     number_of_legs = stage.number_of_legs_per_round[j - 1],
                                     best_of = stage.best_of_per_round[j - 1],
                                     group_number = i
@@ -210,11 +233,34 @@ namespace tournament_app_server.Controllers
                         {
                             if ((bool)stage.include_third_place_match)
                             {
+                                List<long> initialTeam1Scores = new List<long>(), initialTeam2Scores = new List<long>();
+                                for (int a = 0; a < stage.third_place_match_number_of_legs; a++)
+                                {
+                                    initialTeam1Scores.Add(0);
+                                    initialTeam2Scores.Add(0);
+                                }
+                                long[] initialTeam1ScoresArray = initialTeam1Scores.ToArray();
+                                long[] initialTeam2ScoresArray = initialTeam2Scores.ToArray();
+                                List<long> initialTeam1Subscores = new List<long>(), initialTeam2Subscores = new List<long>();
+                                if (stage.third_place_match_best_of > 0)
+                                {
+                                    for (int a = 0; a < stage.third_place_match_number_of_legs * stage.third_place_match_best_of; a++)
+                                    {
+                                        initialTeam1Subscores.Add(0);
+                                        initialTeam2Subscores.Add(0);
+                                    }
+                                }
+                                long[] initialTeam1SubscoresArray = initialTeam1Subscores.ToArray();
+                                long[] initialTeam2SubscoresArray = initialTeam2Subscores.ToArray();
                                 MatchSe thirdPlaceMatchSe = new MatchSe
                                 {
                                     stage_id = stage.id,
                                     round_number = (short)(number_of_rounds + 1),
                                     match_number = 1,
+                                    team_1_scores = initialTeam1ScoresArray,
+                                    team_2_scores = initialTeam2ScoresArray,
+                                    team_1_subscores = initialTeam1SubscoresArray,
+                                    team_2_subscores = initialTeam2SubscoresArray,
                                     number_of_legs = (short)stage.third_place_match_number_of_legs,
                                     best_of = (short)stage.third_place_match_best_of,
                                     group_number = i

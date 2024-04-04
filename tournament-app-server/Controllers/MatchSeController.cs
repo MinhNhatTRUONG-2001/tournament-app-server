@@ -149,51 +149,57 @@ namespace tournament_app_server.Controllers
                 if (matchSeEditTeamNameDto.team_1 != null && matchSeEditTeamNameDto.team_1 != matchSe.team_1)
                 {
                     matchSe.team_1 = matchSeEditTeamNameDto.team_1;
-                    var otherMatchSe1 = await _dbContext.MatchSes
+                    if (old_team_1_name != null)
+                    {
+                        var otherMatchSe1 = await _dbContext.MatchSes
                         .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_1 == old_team_1_name)
                         .ToListAsync();
-                    foreach (var m in otherMatchSe1)
-                    {
-                        m.team_1 = matchSeEditTeamNameDto.team_1;
-                    }
-                    var otherMatchSe2 = await _dbContext.MatchSes
-                        .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_2 == old_team_1_name)
-                        .ToListAsync();
-                    foreach (var m in otherMatchSe2)
-                    {
-                        m.team_2 = matchSeEditTeamNameDto.team_1;
-                    }
-                    var otherMatchSeWinner = await _dbContext.MatchSes
-                        .Where(mse => mse.stage_id == matchSe.stage_id && mse.winner == old_team_1_name)
-                        .ToListAsync();
-                    foreach (var m in otherMatchSeWinner)
-                    {
-                        m.winner = matchSeEditTeamNameDto.team_1;
+                        foreach (var m in otherMatchSe1)
+                        {
+                            m.team_1 = matchSeEditTeamNameDto.team_1;
+                        }
+                        var otherMatchSe2 = await _dbContext.MatchSes
+                            .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_2 == old_team_1_name)
+                            .ToListAsync();
+                        foreach (var m in otherMatchSe2)
+                        {
+                            m.team_2 = matchSeEditTeamNameDto.team_1;
+                        }
+                        var otherMatchSeWinner = await _dbContext.MatchSes
+                            .Where(mse => mse.stage_id == matchSe.stage_id && mse.winner == old_team_1_name)
+                            .ToListAsync();
+                        foreach (var m in otherMatchSeWinner)
+                        {
+                            m.winner = matchSeEditTeamNameDto.team_1;
+                        }
                     }
                 }
                 if (matchSeEditTeamNameDto.team_2 != null && matchSeEditTeamNameDto.team_2 != matchSe.team_2)
                 {
                     matchSe.team_2 = matchSeEditTeamNameDto.team_2;
-                    var otherMatchSe1 = await _dbContext.MatchSes
+                    if (old_team_2_name != null)
+                    {
+                        var otherMatchSe1 = await _dbContext.MatchSes
                         .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_1 == old_team_2_name)
                         .ToListAsync();
-                    foreach (var m in otherMatchSe1)
-                    {
-                        m.team_1 = matchSeEditTeamNameDto.team_2;
-                    }
-                    var otherMatchSe2 = await _dbContext.MatchSes
-                        .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_2 == old_team_2_name)
-                        .ToListAsync();
-                    foreach (var m in otherMatchSe2)
-                    {
-                        m.team_2 = matchSeEditTeamNameDto.team_2;
-                    }
-                    var otherMatchSeWinner = await _dbContext.MatchSes
-                        .Where(mse => mse.stage_id == matchSe.stage_id && mse.winner == old_team_2_name)
-                        .ToListAsync();
-                    foreach (var m in otherMatchSeWinner)
-                    {
-                        m.winner = matchSeEditTeamNameDto.team_2;
+                        foreach (var m in otherMatchSe1)
+                        {
+                            m.team_1 = matchSeEditTeamNameDto.team_2;
+                        }
+                        var otherMatchSe2 = await _dbContext.MatchSes
+                            .Where(mse => mse.stage_id == matchSe.stage_id && mse.team_2 == old_team_2_name)
+                            .ToListAsync();
+                        foreach (var m in otherMatchSe2)
+                        {
+                            m.team_2 = matchSeEditTeamNameDto.team_2;
+                        }
+                        var otherMatchSeWinner = await _dbContext.MatchSes
+                            .Where(mse => mse.stage_id == matchSe.stage_id && mse.winner == old_team_2_name)
+                            .ToListAsync();
+                        foreach (var m in otherMatchSeWinner)
+                        {
+                            m.winner = matchSeEditTeamNameDto.team_2;
+                        }
                     }
                 }
                 await _dbContext.SaveChangesAsync();
@@ -206,7 +212,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpPut("{id}/match_info/{token}")]
-        public async Task<ActionResult<MatchSe>> EditMatchInfo(long id, string token, [FromBody] MatchSeDTO matchSeDto)
+        public async Task<ActionResult<MatchSe>> EditMatchInfo(long id, string token, [FromBody] MatchSeEditMatchInfoDTO matchSeEditMatchInfoDto)
         {
             if (_dbContext.MatchSes == null)
             {
@@ -234,13 +240,14 @@ namespace tournament_app_server.Controllers
                 {
                     return NotFound();
                 }
-                if (matchSeDto.start_datetime != null)
+                if (matchSeEditMatchInfoDto.start_datetime != null)
                 {
-                    matchSe.start_datetime = DateTimeOffset.Parse(matchSeDto.start_datetime).ToUniversalTime();
+                    matchSe.start_datetime = DateTimeOffset.Parse(matchSeEditMatchInfoDto.start_datetime).ToUniversalTime();
                 }
-                matchSe.place = matchSeDto.place;
-                matchSe.note = matchSeDto.note;
+                matchSe.place = matchSeEditMatchInfoDto.place;
+                matchSe.note = matchSeEditMatchInfoDto.note;
 
+                await _dbContext.SaveChangesAsync();
                 return new ActionResult<MatchSe>(matchSe);
             }
             catch (Exception ex)
@@ -250,7 +257,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpPut("{id}/match_score/{token}")]
-        public async Task<ActionResult<MatchSe>> EditMatchScore(int id, string token, [FromBody] MatchSeDTO matchSeDto)
+        public async Task<ActionResult<MatchSe>> EditMatchScore(long id, string token, [FromBody] MatchSeEditMatchScoreDTO matchSeEditMatchScoreDto)
         {
             if (_dbContext.MatchSes == null)
             {
@@ -281,131 +288,231 @@ namespace tournament_app_server.Controllers
                 var stage = await _dbContext.Stages
                     .Where(s => s.id == matchSe.stage_id)
                     .FirstAsync();
-
+                //Verify team names
+                if (matchSe.team_1 == null || matchSe.team_2 == null)
+                {
+                    throw new Exception("Team names must be defined before updating scores.");
+                }
+                //Verify winner name
+                if (matchSeEditMatchScoreDto.winner != matchSe.team_1 && matchSeEditMatchScoreDto.winner != matchSe.team_2)
+                {
+                    throw new Exception("Invalid winner.");
+                }
                 //Verify scores: number of legs, best of
-                int matchSeNumberOfLegs, matchSeBestOf;
-                if (matchSe.round_number <= stage.number_of_legs_per_round.Length)
-                {
-                    matchSeNumberOfLegs = stage.number_of_legs_per_round[matchSe.round_number - 1];
-                    matchSeBestOf = stage.best_of_per_round[matchSe.round_number - 1];
-                }
-                else
-                {
-                    matchSeNumberOfLegs = (int)stage.third_place_match_number_of_legs;
-                    matchSeBestOf = (int)stage.third_place_match_best_of;
-                }
-                if (matchSeDto.team_1_scores.Length != matchSeNumberOfLegs || matchSeDto.team_2_scores.Length != matchSeNumberOfLegs
-                    || matchSeDto.team_1_subscores.Count(s => s == null) < matchSeNumberOfLegs - 1 || matchSeDto.team_2_subscores.Count(s => s == null) != matchSeNumberOfLegs - 1)
+                short matchSeNumberOfLegs = matchSe.number_of_legs;
+                short matchSeBestOf = matchSe.best_of;
+                if (matchSeEditMatchScoreDto.team_1_scores.Length != matchSeNumberOfLegs || matchSeEditMatchScoreDto.team_2_scores.Length != matchSeNumberOfLegs)
                 {
                     throw new Exception("Scores provided mismatch number of legs in this round.");
                 }
-                List<long[]> team1SubscoresMatrix = new List<long[]>();
-                List<long> subarray1 = new List<long>();
-                foreach (var ss in matchSeDto.team_1_subscores)
+                if (matchSeEditMatchScoreDto.team_1_subscores != null && matchSeEditMatchScoreDto.team_2_subscores != null)
                 {
-                    if (ss != null)
+                    if ((short)matchSeEditMatchScoreDto.team_1_subscores.Length < matchSeNumberOfLegs * matchSeBestOf || (short)matchSeEditMatchScoreDto.team_2_subscores.Length != matchSeNumberOfLegs * matchSeBestOf)
                     {
-                        subarray1.Add(ss);
+                        throw new Exception("Subscores provided mismatch number of legs in this round.");
                     }
-                    else
-                    {
-                        team1SubscoresMatrix.Add(subarray1.ToArray());
-                        subarray1.Clear();
-                    }
-                }
-                if (subarray1.Count > 0)
-                {
-                    team1SubscoresMatrix.Add(subarray1.ToArray());
-                }
-                List<long[]> team2SubscoresMatrix = new List<long[]>();
-                List<long> subarray2 = new List<long>();
-                foreach (var ss in matchSeDto.team_2_subscores)
-                {
-                    if (ss != null)
-                    {
-                        subarray2.Add(ss);
-                    }
-                    else
-                    {
-                        team2SubscoresMatrix.Add(subarray2.ToArray());
-                        subarray2.Clear();
-                    }
-                }
-                if (subarray2.Count > 0)
-                {
-                    team2SubscoresMatrix.Add(subarray2.ToArray());
-                }
-                for (int i = 0; i < matchSeNumberOfLegs; i++)
-                {
-                    if (team1SubscoresMatrix.LongCount() != matchSeDto.team_1_scores[i]
-                        || team2SubscoresMatrix.LongCount() != matchSeDto.team_2_scores[i])
+                    if ((short)matchSeEditMatchScoreDto.team_1_subscores.Count() / matchSeBestOf != matchSeNumberOfLegs || (short)matchSeEditMatchScoreDto.team_2_subscores.Count() / matchSeBestOf != matchSeNumberOfLegs)
                     {
                         throw new Exception("Subscores provided mismatch scores provided.");
                     }
-                    if (matchSeBestOf > 0)
+                    for (int i = 0; i < matchSeNumberOfLegs; i++)
                     {
-                        if (matchSeDto.team_1_scores[i] + matchSeDto.team_2_scores[i] > matchSeBestOf
-                            || matchSeDto.team_1_scores[i] > Math.Floor((decimal)matchSeBestOf / 2) + 1
-                            || matchSeDto.team_2_scores[i] > Math.Floor((decimal)matchSeBestOf / 2) + 1)
+                        if (matchSeBestOf > 0)
                         {
-                            throw new Exception("Subscores provided mismatch best of in this round.");
+                            if (matchSeEditMatchScoreDto.team_1_scores[i] + matchSeEditMatchScoreDto.team_2_scores[i] > matchSeBestOf
+                                || matchSeEditMatchScoreDto.team_1_scores[i] > Math.Floor((decimal)matchSeBestOf / 2) + 1
+                                || matchSeEditMatchScoreDto.team_2_scores[i] > Math.Floor((decimal)matchSeBestOf / 2) + 1)
+                            {
+                                throw new Exception("Scores provided mismatch best of in this round.");
+                            }
+                        }
+                    }
+                }
+                string oldWinner = matchSe.winner;
+                string loser;
+                matchSe.winner = matchSeEditMatchScoreDto.winner;
+                if (matchSe.winner == matchSe.team_1)
+                {
+                    loser = matchSe.team_2;
+                }
+                else
+                {
+                    loser = matchSe.team_1;
+                }
+                matchSe.team_1_scores = matchSeEditMatchScoreDto.team_1_scores;
+                matchSe.team_2_scores = matchSeEditMatchScoreDto.team_2_scores;
+                matchSe.team_1_subscores = matchSeEditMatchScoreDto.team_1_subscores;
+                matchSe.team_2_subscores = matchSeEditMatchScoreDto.team_2_subscores;
+                await _dbContext.SaveChangesAsync();
+                //Update match in round+1: change winner name, clear score
+                string nextOldWinner = oldWinner;
+                if (matchSe.round_number < (short)stage.number_of_legs_per_round.Length)
+                {
+                    short nextMatchNumber = (short)((matchSe.match_number + 1) / 2);
+                    var nextMatchSe = await _dbContext.MatchSes
+                        .Where(mse => mse.stage_id == matchSe.stage_id && mse.group_number == matchSe.group_number && mse.round_number == matchSe.round_number + 1 && mse.match_number == nextMatchNumber)
+                        .FirstAsync();
+                    if (matchSe.match_number % 2 != 0)
+                    {
+                        nextMatchSe.team_1 = matchSe.winner;
+                    }
+                    else
+                    {
+                        nextMatchSe.team_2 = matchSe.winner;
+                    }
+                    if (matchSe.winner != oldWinner)
+                    {
+                        nextOldWinner = nextMatchSe.winner;
+                        nextMatchSe.winner = null;
+                        for (int i = 0; i < nextMatchSe.team_1_scores.Length; i++)
+                        {
+                            nextMatchSe.team_1_scores[i] = 0;
+                        }
+                        for (int i = 0; i < nextMatchSe.team_2_scores.Length; i++)
+                        {
+                            nextMatchSe.team_2_scores[i] = 0;
+                        }
+                        for (int i = 0; i < nextMatchSe.team_1_subscores.Length; i++)
+                        {
+                            nextMatchSe.team_1_subscores[i] = 0;
+                        }
+                        for (int i = 0; i < nextMatchSe.team_2_subscores.Length; i++)
+                        {
+                            nextMatchSe.team_2_subscores[i] = 0;
+                        }
+                    }
+                    if (stage.include_third_place_match)
+                    {
+                        if (nextMatchSe.round_number == (short)stage.number_of_legs_per_round.Length)
+                        {
+                            var thirdPlaceMatchSe = await _dbContext.MatchSes
+                                .Where(mse => mse.stage_id == matchSe.stage_id && mse.group_number == matchSe.group_number && mse.round_number == nextMatchSe.round_number + 1)
+                                .FirstAsync();
+                            if (loser == matchSe.team_2)
+                            {
+                                if (matchSe.match_number % 2 != 0)
+                                {
+                                    thirdPlaceMatchSe.team_1 = matchSe.team_2;
+                                }
+                                else
+                                {
+                                    thirdPlaceMatchSe.team_2 = matchSe.team_2;
+                                }
+                            }
+                            else
+                            {
+                                if (matchSe.match_number % 2 != 0)
+                                {
+                                    thirdPlaceMatchSe.team_1 = matchSe.team_1;
+                                }
+                                else
+                                {
+                                    thirdPlaceMatchSe.team_2 = matchSe.team_1;
+                                }
+                            }
+                            if (matchSe.winner != oldWinner)
+                            {
+                                thirdPlaceMatchSe.winner = null;
+                                for (int i = 0; i < thirdPlaceMatchSe.team_1_scores.Length; i++)
+                                {
+                                    thirdPlaceMatchSe.team_1_scores[i] = 0;
+                                }
+                                for (int i = 0; i < thirdPlaceMatchSe.team_2_scores.Length; i++)
+                                {
+                                    thirdPlaceMatchSe.team_2_scores[i] = 0;
+                                }
+                                for (int i = 0; i < thirdPlaceMatchSe.team_1_subscores.Length; i++)
+                                {
+                                    thirdPlaceMatchSe.team_1_subscores[i] = 0;
+                                }
+                                for (int i = 0; i < thirdPlaceMatchSe.team_2_subscores.Length; i++)
+                                {
+                                    thirdPlaceMatchSe.team_2_subscores[i] = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+                await _dbContext.SaveChangesAsync();
+                //Reset depenedent matches in round+2,+3,...: delete winner name, clear score
+                if (matchSe.winner != oldWinner)
+                {
+                    for (int i = matchSe.round_number + 2; i <= stage.number_of_legs_per_round.Length; i++)
+                    {
+                        var resetMatchSe = await _dbContext.MatchSes
+                            .Where(mse => mse.stage_id == matchSe.stage_id && mse.group_number == matchSe.group_number && mse.round_number == i && (mse.team_1 == nextOldWinner || mse.team_2 == nextOldWinner))
+                            .FirstAsync();
+                        if (resetMatchSe.team_1 == nextOldWinner)
+                        {
+                            resetMatchSe.team_1 = null;
+                        }
+                        else if (resetMatchSe.team_2 == nextOldWinner)
+                        {
+                            resetMatchSe.team_2 = null;
+                        }
+                        nextOldWinner = resetMatchSe.winner;
+                        resetMatchSe.winner = null;
+                        for (int j = 0; j < resetMatchSe.team_1_scores.Length; j++)
+                        {
+                            resetMatchSe.team_1_scores[j] = 0;
+                        }
+                        for (int j = 0; j < resetMatchSe.team_2_scores.Length; j++)
+                        {
+                            resetMatchSe.team_2_scores[j] = 0;
+                        }
+                        for (int j = 0; j < resetMatchSe.team_1_subscores.Length; j++)
+                        {
+                            resetMatchSe.team_1_subscores[j] = 0;
+                        }
+                        for (int j = 0; j < resetMatchSe.team_2_subscores.Length; j++)
+                        {
+                            resetMatchSe.team_2_subscores[j] = 0;
+                        }
+                    }
+                    await _dbContext.SaveChangesAsync();
+                    if (stage.include_third_place_match)
+                    {
+                        var resetThirdPlaceMatchSe = await _dbContext.MatchSes
+                            .Where(mse => mse.stage_id == matchSe.stage_id && mse.group_number == matchSe.group_number && mse.round_number == (short)(stage.number_of_legs_per_round.Length + 1))
+                            .FirstAsync();
+                        if (resetThirdPlaceMatchSe.id != matchSe.id && matchSe.round_number + 2 < resetThirdPlaceMatchSe.round_number)
+                        {
+                            var semiFinalMatchSes = await _dbContext.MatchSes
+                                .Where(mse => mse.stage_id == matchSe.stage_id && mse.group_number == matchSe.group_number && mse.round_number == resetThirdPlaceMatchSe.round_number - 2)
+                                .ToListAsync();
+                            for (int i = 1; i <= semiFinalMatchSes.Count; i++)
+                            { 
+                                if (semiFinalMatchSes[i - 1].match_number == 1 && semiFinalMatchSes[i - 1].winner == null)
+                                {
+                                    resetThirdPlaceMatchSe.team_1 = null;
+                                }
+                                else if (semiFinalMatchSes[i - 1].match_number == 2 && semiFinalMatchSes[i - 1].winner == null)
+                                {
+                                    resetThirdPlaceMatchSe.team_2 = null;
+                                }
+                            }
+                            resetThirdPlaceMatchSe.winner = null;
+                            for (int i = 0; i < resetThirdPlaceMatchSe.team_1_scores.Length; i++)
+                            {
+                                resetThirdPlaceMatchSe.team_1_scores[i] = 0;
+                            }
+                            for (int i = 0; i < resetThirdPlaceMatchSe.team_2_scores.Length; i++)
+                            {
+                                resetThirdPlaceMatchSe.team_2_scores[i] = 0;
+                            }
+                            for (int i = 0; i < resetThirdPlaceMatchSe.team_1_subscores.Length; i++)
+                            {
+                                resetThirdPlaceMatchSe.team_1_subscores[i] = 0;
+                            }
+                            for (int i = 0; i < resetThirdPlaceMatchSe.team_2_subscores.Length; i++)
+                            {
+                                resetThirdPlaceMatchSe.team_2_subscores[i] = 0;
+                            }
                         }
                     }
                 }
 
-                string old_winner = matchSe.winner;
-                matchSe.team_1 = matchSeDto.team_1;
-                matchSe.team_2 = matchSeDto.team_2;
-                matchSe.winner = matchSeDto.winner;
-                matchSe.team_1_scores = matchSeDto.team_1_scores;
-                matchSe.team_2_scores = matchSeDto.team_2_scores;
-                matchSe.team_1_subscores = matchSeDto.team_1_subscores;
-                matchSe.team_2_subscores = matchSeDto.team_2_subscores;
                 await _dbContext.SaveChangesAsync();
-                //Update match in round+1: change winner name, clear score
-                short nextMatchNumber = (short)((matchSe.match_number + 1) / 2);
-                var nextMatchSe = await _dbContext.MatchSes
-                    .Where(mse => mse.stage_id == matchSe.stage_id && mse.round_number == matchSe.round_number + 1 && mse.match_number == nextMatchNumber)
-                    .FirstAsync();
-                if (matchSe.match_number % 2 != 0)
-                {
-                    nextMatchSe.team_1 = matchSe.winner;
-                }
-                else
-                {
-                    nextMatchSe.team_2 = matchSe.winner;
-                }
-                if (matchSe.winner != old_winner)
-                {
-                    nextMatchSe.winner = null;
-                    nextMatchSe.team_1_scores = null;
-                    nextMatchSe.team_2_scores = null;
-                    nextMatchSe.team_1_subscores = null;
-                    nextMatchSe.team_2_subscores = null;
-                }
-                //Reset depenedent matches in round+2,+3,...: delete winner name, clear score
-                if (matchSe.winner != old_winner)
-                {
-                    for (int i = matchSe.round_number + 2; i <= stage.number_of_legs_per_round.Length + 1; i++)
-                    {
-                        var resetMatchSe = await _dbContext.MatchSes
-                            .Where(mse => mse.team_1 == old_winner || mse.team_2 == old_winner)
-                            .FirstAsync();
-                        if (resetMatchSe.team_1 == old_winner)
-                        {
-                            resetMatchSe.team_1 = null;
-                        }
-                        else if (resetMatchSe.team_2 == old_winner)
-                        {
-                            resetMatchSe.team_2 = null;
-                        }
-                        resetMatchSe.winner = null;
-                        resetMatchSe.team_1_scores = null;
-                        resetMatchSe.team_2_scores = null;
-                        resetMatchSe.team_1_subscores = null;
-                        resetMatchSe.team_2_subscores = null;
-                    }
-                }
                 return new ActionResult<MatchSe>(matchSe);
             }
             catch (Exception ex)
