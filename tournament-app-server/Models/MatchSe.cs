@@ -1,7 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using System.Text.Json;
-
-namespace tournament_app_server.Models
+﻿namespace tournament_app_server.Models
 {
     public class MatchSe
     {

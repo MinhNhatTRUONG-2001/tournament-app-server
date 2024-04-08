@@ -7,5 +7,6 @@
         public string? end_date { get; set; }
         public string[]? places { get; set; }
         public string? description { get; set; }
+        public bool is_private { get; set; }
     }
 }

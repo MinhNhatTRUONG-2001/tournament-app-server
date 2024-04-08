@@ -120,21 +120,36 @@ namespace tournament_app_server.Controllers
                 }
                 stage.places = stageDto.places;
                 stage.tournament_id = stageDto.tournament_id;
-                short number_of_rounds = (short)Math.Ceiling(Math.Log2(stageDto.number_of_teams_per_group));
-                short ideal_number_of_teams_per_group = (short)Math.Pow(2, number_of_rounds);
+                short numberOfRoundsSe = 0;
+                short idealNumberOfTeamsPerGroupSe = 0;
                 var maxStageOrder = await _dbContext.Stages
                     .Where(s => s.tournament_id == tournament.id)
                     .OrderBy(s => s.stage_order)
                     .Select(s => (short?)s.stage_order)
                     .MaxAsync();
                 short currentMaxStageOrder = maxStageOrder ?? 0;
-                if (ideal_number_of_teams_per_group >= 2 && ideal_number_of_teams_per_group <= 128)
+                if (stage.format_id == 1) //Single elimination
                 {
-                    stage.number_of_teams_per_group = ideal_number_of_teams_per_group;
+                    numberOfRoundsSe = (short)Math.Ceiling(Math.Log2(stageDto.number_of_teams_per_group));
+                    idealNumberOfTeamsPerGroupSe = (short)Math.Pow(2, numberOfRoundsSe);
+                    if (idealNumberOfTeamsPerGroupSe >= 2 && idealNumberOfTeamsPerGroupSe <= 128)
+                    {
+                        stage.number_of_teams_per_group = idealNumberOfTeamsPerGroupSe;
+                    }
+                    else
+                    {
+                        throw new Exception("Invalid number_of_teams_per_group.");
+                    }
                 }
-                else
-                {
-                    throw new Exception("Invalid number_of_teams_per_group.");
+                else if (stage.format_id == 2) { //Round robin
+                    if (stageDto.number_of_teams_per_group >= 2 && stageDto.number_of_teams_per_group <= 32)
+                    {
+                        stage.number_of_teams_per_group = stageDto.number_of_teams_per_group;
+                    }
+                    else
+                    {
+                        throw new Exception("Invalid number_of_teams_per_group.");
+                    }
                 }
                 if (stageDto.number_of_groups >= 1 && stageDto.number_of_groups <= 32)
                 {
@@ -164,8 +179,8 @@ namespace tournament_app_server.Controllers
                         throw new Exception("Invalid number_of_legs_per_round.");
                     }
                 }
-                stage.number_of_legs_per_round = stageDto.number_of_legs_per_round.ToArray();
-                stage.best_of_per_round = stageDto.best_of_per_round.ToArray();
+                stage.number_of_legs_per_round = stageDto.number_of_legs_per_round;
+                stage.best_of_per_round = stageDto.best_of_per_round;
                 stage.description = stageDto.description;
 
                 if (stage.format_id == 1) //Single elimination
@@ -178,20 +193,43 @@ namespace tournament_app_server.Controllers
                     stage.third_place_match_number_of_legs = stageDto.third_place_match_number_of_legs;
                     stage.third_place_match_best_of = stageDto.third_place_match_best_of;
                 }
+                else if (stage.format_id == 2) //Round robin
+                {
+                    if (stageDto.win_point != null)
+                    {
+                        stage.win_point = (int)stageDto.win_point;
+                    }
+                    if (stageDto.draw_point != null)
+                    {
+                        stage.draw_point = (int)stageDto.draw_point;
+                    }
+                    if (stageDto.lose_point != null)
+                    {
+                        stage.lose_point = (int)stageDto.lose_point;
+                    }
+                }
 
                 _dbContext.Stages.Add(stage);
                 await _dbContext.SaveChangesAsync();
 
                 if (stage.format_id == 1) //Single elimination
                 {
+                    List<int[]> seedingPairs = new List<int[]>();
+                    singleEliminationSeeding(seedingPairs, 1, 1, numberOfRoundsSe + 1);
                     //Generate single elimiation matches (except 3rd-place match)
                     for (short i = 1; i <= stage.number_of_groups; i++)
                     {
-                        short number_of_pairs_per_round = (short)(ideal_number_of_teams_per_group / 2);
-                        for (short j = 1; j <= number_of_rounds; j++)
+                        short numberOfPairsPerRound = (short)(idealNumberOfTeamsPerGroupSe / 2);
+                        for (short j = 1; j <= numberOfRoundsSe; j++)
                         {
-                            for (short k = 1; k <= number_of_pairs_per_round; k++)
+                            for (short k = 1; k <= numberOfPairsPerRound; k++)
                             {
+                                string team1Name = null, team2Name = null;
+                                if (j == 1)
+                                {
+                                    team1Name = "G" + i.ToString() + "-T" + seedingPairs[k][0].ToString();
+                                    team2Name = "G" + i.ToString() + "-T" + seedingPairs[k][1].ToString();
+                                }
                                 List<long> initialTeam1Scores = new List<long>(), initialTeam2Scores = new List<long>();
                                 for (int a = 0; a < stage.number_of_legs_per_round[j - 1]; a++)
                                 {
@@ -216,6 +254,8 @@ namespace tournament_app_server.Controllers
                                     stage_id = stage.id,
                                     round_number = j,
                                     match_number = k,
+                                    team_1 = team1Name,
+                                    team_2 = team2Name,
                                     team_1_scores = initialTeam1ScoresArray,
                                     team_2_scores = initialTeam2ScoresArray,
                                     team_1_subscores = initialTeam1SubscoresArray,
@@ -226,7 +266,7 @@ namespace tournament_app_server.Controllers
                                 };
                                 _dbContext.MatchSes.Add(matchSe);
                             }
-                            number_of_pairs_per_round /= 2;
+                            numberOfPairsPerRound /= 2;
                         }
                         //3rd-place match generation
                         if (stage.include_third_place_match != null)
@@ -255,7 +295,7 @@ namespace tournament_app_server.Controllers
                                 MatchSe thirdPlaceMatchSe = new MatchSe
                                 {
                                     stage_id = stage.id,
-                                    round_number = (short)(number_of_rounds + 1),
+                                    round_number = (short)(numberOfRoundsSe + 1),
                                     match_number = 1,
                                     team_1_scores = initialTeam1ScoresArray,
                                     team_2_scores = initialTeam2ScoresArray,
@@ -266,6 +306,49 @@ namespace tournament_app_server.Controllers
                                     group_number = i
                                 };
                                 _dbContext.MatchSes.Add(thirdPlaceMatchSe);
+                            }
+                        }
+                    }
+                    await _dbContext.SaveChangesAsync();
+                }
+                else if (stage.format_id == 2) //Round robin
+                {
+                    List<long> initialTeam1Subscores = new List<long>(), initialTeam2Subscores = new List<long>();
+                    if (stage.best_of_per_round[0] > 0)
+                    {
+                        for (int a = 0; a < stage.best_of_per_round[0]; a++)
+                        {
+                            initialTeam1Subscores.Add(0);
+                            initialTeam2Subscores.Add(0);
+                        }
+                    }
+                    long[] initialTeam1SubscoresArray = initialTeam1Subscores.ToArray();
+                    long[] initialTeam2SubscoresArray = initialTeam2Subscores.ToArray();
+                    for (short i = 1; i <= stage.number_of_groups; i++)
+                    {
+                        for (short j = 1; j <= stage.number_of_legs_per_round[0]; j++)
+                        {
+                            short matchNumber = 1;
+                            for (short a = 1; a < stage.number_of_teams_per_group; a++)
+                            {
+                                for (short b = (short)(a + 1); b <= stage.number_of_teams_per_group; b++)
+                                {
+                                    MatchRr matchRr = new MatchRr
+                                    {
+                                        stage_id = stage.id,
+                                        group_number = i,
+                                        leg_number = j,
+                                        match_number = matchNumber,
+                                        team_1 = "G" + i.ToString() + "-T" + a.ToString(),
+                                        team_2 = "G" + i.ToString() + "-T" + b.ToString(),
+                                        team_1_score = 0,
+                                        team_2_score = 0,
+                                        team_1_subscores = initialTeam1SubscoresArray,
+                                        team_2_subscores = initialTeam2SubscoresArray,
+                                    };
+                                    _dbContext.MatchRrs.Add(matchRr);
+                                    matchNumber++;
+                                }
                             }
                         }
                     }
@@ -446,6 +529,28 @@ namespace tournament_app_server.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        public static void singleEliminationSeeding(List<int[]> pairs, int seed, int level, int limit)
+        {
+            var levelSum = (int)Math.Pow(2, level) + 1;
+
+            if (limit == level + 1)
+            {
+                //Console.WriteLine("Seed {0} vs. Seed {1}", seed, levelSum - seed);
+                pairs.Add([seed, levelSum - seed]);
+                return;
+            }
+            else if (seed % 2 == 1)
+            {
+                singleEliminationSeeding(pairs, seed, level + 1, limit);
+                singleEliminationSeeding(pairs, levelSum - seed, level + 1, limit);
+            }
+            else
+            {
+                singleEliminationSeeding(pairs, levelSum - seed, level + 1, limit);
+                singleEliminationSeeding(pairs, seed, level + 1, limit);
             }
         }
     }

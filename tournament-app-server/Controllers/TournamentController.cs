@@ -18,6 +18,26 @@ namespace tournament_app_server.Controllers
             _dbContext = dbContext;
         }
 
+        [HttpGet("public")]
+        public async Task<ActionResult<IEnumerable<Tournament>>> GetPublicTournaments()
+        {
+            if (_dbContext.Tournaments == null)
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                return await _dbContext.Tournaments
+                    .Where(t => t.is_private == false)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet("all/{token}")]
         public async Task<ActionResult<IEnumerable<Tournament>>> GetTournamentsByUserId(string token)
         {
@@ -99,6 +119,7 @@ namespace tournament_app_server.Controllers
                 tournament.places = tournamentDto.places;
                 tournament.user_id = userId;
                 tournament.description = tournamentDto.description;
+                tournament.is_private = tournamentDto.is_private;
                 _dbContext.Tournaments.Add(tournament);
                 await _dbContext.SaveChangesAsync();
                 return CreatedAtAction(nameof(GetTournamentById), new { tournament.id, token }, tournament);
@@ -143,6 +164,7 @@ namespace tournament_app_server.Controllers
                 tournament.places = tournamentDto.places;
                 tournament.user_id = userId;
                 tournament.description = tournamentDto.description;
+                tournament.is_private = tournamentDto.is_private;
                 await _dbContext.SaveChangesAsync();
                 return new ActionResult<Tournament>(tournament);
             }

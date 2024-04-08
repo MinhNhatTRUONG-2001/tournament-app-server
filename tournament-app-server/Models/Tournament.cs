@@ -9,5 +9,6 @@
         public string[]? places { get; set; }
         public long user_id { get; set; }
         public string? description { get; set; }
+        public bool is_private { get; set; }
     }
 }
