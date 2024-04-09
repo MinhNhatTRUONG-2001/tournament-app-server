@@ -18,8 +18,8 @@ namespace tournament_app_server.Controllers
             _dbContext = dbContext;
         }
 
-        [HttpGet("all/{stage_id}/{token}")]
-        public async Task<ActionResult<IEnumerable<MatchSe>>> GetMatchesByStageId(long stage_id, string token)
+        [HttpGet("all/{stage_id}/{token?}")]
+        public async Task<ActionResult<IEnumerable<MatchSe>>> GetMatchesByStageId(long stage_id, string token = "")
         {
             if (_dbContext.MatchSes == null)
             {
@@ -28,19 +28,34 @@ namespace tournament_app_server.Controllers
 
             try
             {
-                var decodedToken = TokenValidation.ValidateToken(token);
-                var payload = decodedToken.Payload;
-                int userId = (int)payload["id"];
-                var stageUserId = await _dbContext.StageUserIds
-                    .Where(su => su.stage_id == stage_id)
-                    .FirstAsync();
-                if (stageUserId == null)
+                var stage = await _dbContext.Stages.FindAsync(stage_id);
+                if (stage == null)
                 {
                     return NotFound();
                 }
-                else if (stageUserId.user_id != userId)
+                var tournament = await _dbContext.Tournaments.FindAsync(stage.tournament_id);
+                if (tournament == null)
                 {
-                    throw new Exception("Cannot access or modify this stage by your token.");
+                    return NotFound();
+                }
+
+                if (token == "")
+                {
+                    if (tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify these matches without a valid token.");
+                    }
+                }
+                else
+                {
+                    var decodedToken = TokenValidation.ValidateToken(token);
+                    var payload = decodedToken.Payload;
+                    int userId = (int)payload["id"];
+
+                    if (tournament.user_id != userId && tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify this match by your token.");
+                    }
                 }
 
                 return await _dbContext.MatchSes
@@ -53,8 +68,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpGet("{id}/{token}")]
-        public async Task<ActionResult<MatchSe>> GetMatchById(long id, string token)
+        [HttpGet("{id}/{token?}")]
+        public async Task<ActionResult<MatchSe>> GetMatchById(long id, string token = "")
         {
             if (_dbContext.MatchSes == null)
             {
@@ -63,22 +78,42 @@ namespace tournament_app_server.Controllers
 
             try
             {
-                var decodedToken = TokenValidation.ValidateToken(token);
-                var payload = decodedToken.Payload;
-                int userId = (int)payload["id"];
-                var matchSeUserId = await _dbContext.MatchSeUserIds
-                    .Where(mseu => mseu.match_id == id)
-                    .FirstAsync();
-                if (matchSeUserId == null)
+                var matchSe = await _dbContext.MatchSes.FindAsync(id);
+                if (matchSe == null)
                 {
                     return NotFound();
                 }
-                else if (matchSeUserId.user_id != userId)
+                var stage = await _dbContext.Stages.FindAsync(matchSe.stage_id);
+                if (stage == null)
                 {
-                    throw new Exception("Cannot access or modify this stage by your token.");
+                    return NotFound();
+                }
+                var tournament = await _dbContext.Tournaments.FindAsync(stage.tournament_id);
+                if (tournament == null)
+                {
+                    return NotFound();
                 }
 
-                return await _dbContext.MatchSes.FindAsync(id);
+                if (token == "")
+                {
+                    if (tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify these matches without a valid token.");
+                    }
+                }
+                else
+                {
+                    var decodedToken = TokenValidation.ValidateToken(token);
+                    var payload = decodedToken.Payload;
+                    int userId = (int)payload["id"];
+                    
+                    if (tournament.user_id != userId && tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify this match by your token.");
+                    }
+                }
+
+                return matchSe;
             }
             catch (Exception ex)
             {
@@ -98,23 +133,26 @@ namespace tournament_app_server.Controllers
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
-                var matchSeUserId = await _dbContext.MatchSeUserIds
-                    .Where(mseu => mseu.match_id != id)
-                    .FirstAsync();
-                if (matchSeUserId == null)
-                {
-                    return NotFound();
-                }
-                else if (matchSeUserId.user_id != userId)
-                {
-                    throw new Exception("Cannot modify this match by your token.");
-                }
-                
                 var matchSe = await _dbContext.MatchSes.FindAsync(id);
                 if (matchSe == null)
                 {
                     return NotFound();
                 }
+                var stage = await _dbContext.Stages.FindAsync(matchSe.stage_id);
+                if (stage == null)
+                {
+                    return NotFound();
+                }
+                var tournament = await _dbContext.Tournaments.FindAsync(stage.tournament_id);
+                if (tournament == null)
+                {
+                    return NotFound();
+                }
+                else if (tournament.user_id != userId)
+                {
+                    throw new Exception("Cannot modify this match by your token.");
+                }
+                
                 if (matchSe.round_number != 1) //Team names can only be edited in round 1
                 {
                     throw new Exception("Invalid round_number");
@@ -212,7 +250,7 @@ namespace tournament_app_server.Controllers
         }
 
         [HttpPut("{id}/match_info/{token}")]
-        public async Task<ActionResult<MatchSe>> EditMatchInfo(long id, string token, [FromBody] MatchSeEditMatchInfoDTO matchSeEditMatchInfoDto)
+        public async Task<ActionResult<MatchSe>> EditMatchInfo(long id, string token, [FromBody] MatchEditMatchInfoDTO matchSeEditMatchInfoDto)
         {
             if (_dbContext.MatchSes == null)
             {
@@ -223,14 +261,22 @@ namespace tournament_app_server.Controllers
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
-                var matchSeUserId = await _dbContext.MatchSeUserIds
-                    .Where(mseu => mseu.match_id != id)
-                    .FirstAsync();
-                if (matchSeUserId == null)
+                var match = await _dbContext.MatchSes.FindAsync(id);
+                if (match == null)
                 {
                     return NotFound();
                 }
-                else if (matchSeUserId.user_id != userId)
+                var stage = await _dbContext.Stages.FindAsync(match.stage_id);
+                if (stage == null)
+                {
+                    return NotFound();
+                }
+                var tournament = await _dbContext.Tournaments.FindAsync(stage.tournament_id);
+                if (tournament == null)
+                {
+                    return NotFound();
+                }
+                else if (tournament.user_id != userId)
                 {
                     throw new Exception("Cannot modify this match by your token.");
                 }
@@ -268,26 +314,26 @@ namespace tournament_app_server.Controllers
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
-                var matchSeUserId = await _dbContext.MatchSeUserIds
-                    .Where(mseu => mseu.match_id != id)
-                    .FirstAsync();
-                if (matchSeUserId == null)
-                {
-                    return NotFound();
-                }
-                else if (matchSeUserId.user_id != userId)
-                {
-                    throw new Exception("Cannot modify this match by your token.");
-                }
-
                 var matchSe = await _dbContext.MatchSes.FindAsync(id);
                 if (matchSe == null)
                 {
                     return NotFound();
                 }
-                var stage = await _dbContext.Stages
-                    .Where(s => s.id == matchSe.stage_id)
-                    .FirstAsync();
+                var stage = await _dbContext.Stages.FindAsync(matchSe.stage_id);
+                if (stage == null)
+                {
+                    return NotFound();
+                }
+                var tournament = await _dbContext.Tournaments.FindAsync(stage.tournament_id);
+                if (tournament == null)
+                {
+                    return NotFound();
+                }
+                else if (tournament.user_id != userId)
+                {
+                    throw new Exception("Cannot modify this match by your token.");
+                }
+
                 //Verify team names
                 if (matchSe.team_1 == null || matchSe.team_2 == null)
                 {

@@ -62,8 +62,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpGet("{id}/{token}")]
-        public async Task<ActionResult<Tournament>> GetTournamentById(long id, string token)
+        [HttpGet("{id}/{token?}")]
+        public async Task<ActionResult<Tournament>> GetTournamentById(long id, string token = "")
         {
             if (_dbContext.Tournaments == null)
             {
@@ -71,18 +71,29 @@ namespace tournament_app_server.Controllers
             }
             try
             {
-                var decodedToken = TokenValidation.ValidateToken(token);
-                var payload = decodedToken.Payload;
-                int userId = (int)payload["id"];
-
                 var tournament = await _dbContext.Tournaments.FindAsync(id);
                 if (tournament == null)
                 {
                     return NotFound();
                 }
-                else if (tournament.user_id != userId)
+
+                if (token == "")
                 {
-                    throw new Exception("Cannot access or modify this tournament by your token.");
+                    if (tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify this private tournament without a valid token.");
+                    }
+                }
+                else
+                {
+                    var decodedToken = TokenValidation.ValidateToken(token);
+                    var payload = decodedToken.Payload;
+                    int userId = (int)payload["id"];
+
+                    if (tournament.user_id != userId && tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify this tournament by your token.");
+                    }   
                 }
 
                 return tournament;

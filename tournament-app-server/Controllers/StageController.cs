@@ -18,8 +18,8 @@ namespace tournament_app_server.Controllers
             _dbContext = dbContext;
         }
 
-        [HttpGet("all/{tournament_id}/{token}")]
-        public async Task<ActionResult<IEnumerable<Stage>>> GetStagesByTournamentId(long tournament_id, string token)
+        [HttpGet("all/{tournament_id}/{token?}")]
+        public async Task<ActionResult<IEnumerable<Stage>>> GetStagesByTournamentId(long tournament_id, string token = "")
         {
             if (_dbContext.Stages == null)
             {
@@ -28,17 +28,29 @@ namespace tournament_app_server.Controllers
 
             try
             {
-                var decodedToken = TokenValidation.ValidateToken(token);
-                var payload = decodedToken.Payload;
-                int userId = (int)payload["id"];
                 var tournament = await _dbContext.Tournaments.FindAsync(tournament_id);
                 if (tournament == null)
                 {
                     return NotFound();
                 }
-                else if (tournament.user_id != userId)
+
+                if (token == "")
                 {
-                    throw new Exception("Cannot access or modify these stages by your token.");
+                    if (tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify these private stages without a valid token.");
+                    }
+                }
+                else
+                {
+                    var decodedToken = TokenValidation.ValidateToken(token);
+                    var payload = decodedToken.Payload;
+                    int userId = (int)payload["id"];
+                    if (tournament.user_id != userId && tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify these stages by your token.");
+                    }
+                    
                 }
 
                 return await _dbContext.Stages
@@ -52,8 +64,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpGet("{id}/{token}")]
-        public async Task<ActionResult<Stage>> GetStageById(long id, string token)
+        [HttpGet("{id}/{token?}")]
+        public async Task<ActionResult<Stage>> GetStageById(long id, string token = "")
         {
             if (_dbContext.Stages == null)
             {
@@ -62,22 +74,37 @@ namespace tournament_app_server.Controllers
 
             try
             {
-                var decodedToken = TokenValidation.ValidateToken(token);
-                var payload = decodedToken.Payload;
-                int userId = (int)payload["id"];
-                var stageUserId = await _dbContext.StageUserIds
-                    .Where(su => su.stage_id == id)
-                    .FirstAsync();
-                if (stageUserId == null)
+                var stage = await _dbContext.Stages.FindAsync(id);
+                if (stage == null)
                 {
                     return NotFound();
                 }
-                else if (stageUserId.user_id != userId)
+                var tournament = await _dbContext.Tournaments.FindAsync(stage.tournament_id);
+                if (tournament == null)
                 {
-                    throw new Exception("Cannot access or modify this stage by your token.");
+                    return NotFound();
                 }
 
-                return await _dbContext.Stages.FindAsync(id);
+                if (token == "")
+                {
+                    if (tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify this private stage without a valid token.");
+                    }
+                }
+                else
+                {
+                    var decodedToken = TokenValidation.ValidateToken(token);
+                    var payload = decodedToken.Payload;
+                    int userId = (int)payload["id"];
+                    
+                    if (tournament.user_id != userId && tournament.is_private == true)
+                    {
+                        throw new Exception("Cannot access or modify this stage by your token.");
+                    }
+                }
+
+                return stage;
             }
             catch (Exception ex)
             {
@@ -489,21 +516,19 @@ namespace tournament_app_server.Controllers
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
-                var stageUserId = await _dbContext.StageUserIds
-                    .Where(su => su.stage_id == id)
-                    .FirstAsync();
-                if (stageUserId == null)
-                {
-                    return NotFound();
-                }
-                else if (stageUserId.user_id != userId)
-                {
-                    throw new Exception("Cannot modify stage to this tournament by your token.");
-                }
                 var stage = await _dbContext.Stages.FindAsync(id);
                 if (stage == null)
                 {
                     return NotFound();
+                }
+                var tournament = await _dbContext.Tournaments.FindAsync(stage.tournament_id);
+                if (tournament == null)
+                {
+                    return NotFound();
+                }
+                else if (tournament.user_id != userId)
+                {
+                    throw new Exception("Cannot modify stage to this tournament by your token.");
                 }
                 else
                 {
