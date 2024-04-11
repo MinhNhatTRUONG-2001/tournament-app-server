@@ -563,7 +563,6 @@ namespace tournament_app_server.Controllers
 
             if (limit == level + 1)
             {
-                //Console.WriteLine("Seed {0} vs. Seed {1}", seed, levelSum - seed);
                 pairs.Add([seed, levelSum - seed]);
                 return;
             }
