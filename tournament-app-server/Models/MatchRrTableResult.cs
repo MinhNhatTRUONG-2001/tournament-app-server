@@ -3,8 +3,9 @@
     public class MatchRrTableResult
     {
         public string name {  get; set; }
-        public long points { get; set; }
-        public long difference { get; set; }
-        public long accumulated_score { get; set; }
+        public decimal points { get; set; }
+        public decimal difference { get; set; }
+        public decimal accumulated_score { get; set; }
+        public decimal[] other_criteria_values { get; set; }
     }
 }

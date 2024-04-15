@@ -234,6 +234,14 @@ namespace tournament_app_server.Controllers
                     {
                         stage.lose_point = (int)stageDto.lose_point;
                     }
+                    if (stageDto.other_criteria_names != null)
+                    {
+                        stage.other_criteria_names = stageDto.other_criteria_names;
+                    }
+                    if (stageDto.other_criteria_sort_direction != null)
+                    {
+                        stage.other_criteria_sort_direction = stageDto.other_criteria_sort_direction;
+                    }
                 }
 
                 _dbContext.Stages.Add(stage);
@@ -242,7 +250,7 @@ namespace tournament_app_server.Controllers
                 if (stage.format_id == 1) //Single elimination
                 {
                     List<int[]> seedingPairs = new List<int[]>();
-                    singleEliminationSeeding(seedingPairs, 1, 1, numberOfRoundsSe + 1);
+                    SingleEliminationSeeding(seedingPairs, 1, 1, numberOfRoundsSe + 1);
                     //Generate single elimiation matches (except 3rd-place match)
                     for (short i = 1; i <= stage.number_of_groups; i++)
                     {
@@ -257,15 +265,15 @@ namespace tournament_app_server.Controllers
                                     team1Name = "G" + i.ToString() + "-T" + seedingPairs[k][0].ToString();
                                     team2Name = "G" + i.ToString() + "-T" + seedingPairs[k][1].ToString();
                                 }
-                                List<long> initialTeam1Scores = new List<long>(), initialTeam2Scores = new List<long>();
+                                List<decimal> initialTeam1Scores = new List<decimal>(), initialTeam2Scores = new List<decimal>();
                                 for (int a = 0; a < stage.number_of_legs_per_round[j - 1]; a++)
                                 {
                                     initialTeam1Scores.Add(0);
                                     initialTeam2Scores.Add(0);
                                 }
-                                long[] initialTeam1ScoresArray = initialTeam1Scores.ToArray();
-                                long[] initialTeam2ScoresArray = initialTeam2Scores.ToArray();
-                                List<long> initialTeam1Subscores = new List<long>(), initialTeam2Subscores = new List<long>();
+                                decimal[] initialTeam1ScoresArray = initialTeam1Scores.ToArray();
+                                decimal[] initialTeam2ScoresArray = initialTeam2Scores.ToArray();
+                                List<decimal> initialTeam1Subscores = new List<decimal>(), initialTeam2Subscores = new List<decimal>();
                                 if (stage.best_of_per_round[j - 1] > 0)
                                 {
                                     for (int a = 0; a < stage.number_of_legs_per_round[j - 1] * stage.best_of_per_round[j - 1]; a++)
@@ -274,8 +282,8 @@ namespace tournament_app_server.Controllers
                                         initialTeam2Subscores.Add(0);
                                     }
                                 }
-                                long[] initialTeam1SubscoresArray = initialTeam1Subscores.ToArray();
-                                long[] initialTeam2SubscoresArray = initialTeam2Subscores.ToArray();
+                                decimal[] initialTeam1SubscoresArray = initialTeam1Subscores.ToArray();
+                                decimal[] initialTeam2SubscoresArray = initialTeam2Subscores.ToArray();
                                 MatchSe matchSe = new MatchSe
                                 {
                                     stage_id = stage.id,
@@ -298,17 +306,17 @@ namespace tournament_app_server.Controllers
                         //3rd-place match generation
                         if (stage.include_third_place_match != null)
                         {
-                            if ((bool)stage.include_third_place_match)
+                            if (stage.include_third_place_match)
                             {
-                                List<long> initialTeam1Scores = new List<long>(), initialTeam2Scores = new List<long>();
+                                List<decimal> initialTeam1Scores = new List<decimal>(), initialTeam2Scores = new List<decimal>();
                                 for (int a = 0; a < stage.third_place_match_number_of_legs; a++)
                                 {
                                     initialTeam1Scores.Add(0);
                                     initialTeam2Scores.Add(0);
                                 }
-                                long[] initialTeam1ScoresArray = initialTeam1Scores.ToArray();
-                                long[] initialTeam2ScoresArray = initialTeam2Scores.ToArray();
-                                List<long> initialTeam1Subscores = new List<long>(), initialTeam2Subscores = new List<long>();
+                                decimal[] initialTeam1ScoresArray = initialTeam1Scores.ToArray();
+                                decimal[] initialTeam2ScoresArray = initialTeam2Scores.ToArray();
+                                List<decimal> initialTeam1Subscores = new List<decimal>(), initialTeam2Subscores = new List<decimal>();
                                 if (stage.third_place_match_best_of > 0)
                                 {
                                     for (int a = 0; a < stage.third_place_match_number_of_legs * stage.third_place_match_best_of; a++)
@@ -317,8 +325,8 @@ namespace tournament_app_server.Controllers
                                         initialTeam2Subscores.Add(0);
                                     }
                                 }
-                                long[] initialTeam1SubscoresArray = initialTeam1Subscores.ToArray();
-                                long[] initialTeam2SubscoresArray = initialTeam2Subscores.ToArray();
+                                decimal[] initialTeam1SubscoresArray = initialTeam1Subscores.ToArray();
+                                decimal[] initialTeam2SubscoresArray = initialTeam2Subscores.ToArray();
                                 MatchSe thirdPlaceMatchSe = new MatchSe
                                 {
                                     stage_id = stage.id,
@@ -340,7 +348,7 @@ namespace tournament_app_server.Controllers
                 }
                 else if (stage.format_id == 2) //Round robin
                 {
-                    List<long> initialTeam1Subscores = new List<long>(), initialTeam2Subscores = new List<long>();
+                    List<decimal> initialTeam1Subscores = new List<decimal>(), initialTeam2Subscores = new List<decimal>();
                     if (stage.best_of_per_round[0] > 0)
                     {
                         for (int a = 0; a < stage.best_of_per_round[0]; a++)
@@ -349,8 +357,19 @@ namespace tournament_app_server.Controllers
                             initialTeam2Subscores.Add(0);
                         }
                     }
-                    long[] initialTeam1SubscoresArray = initialTeam1Subscores.ToArray();
-                    long[] initialTeam2SubscoresArray = initialTeam2Subscores.ToArray();
+                    decimal[] initialTeam1SubscoresArray = initialTeam1Subscores.ToArray();
+                    decimal[] initialTeam2SubscoresArray = initialTeam2Subscores.ToArray();
+                    List<decimal> initialTeam1OtherCriteriaValues = new List<decimal>(), initialTeam2OtherCriteriaValues = new List<decimal>();
+                    if (stage.other_criteria_names != null)
+                    {
+                        for (int a = 0; a < stage.other_criteria_names.Length; a++)
+                        {
+                            initialTeam1OtherCriteriaValues.Add(0);
+                            initialTeam2OtherCriteriaValues.Add(0);
+                        }
+                    }
+                    decimal[] initialTeam1OtherCriteriaValuesArray = initialTeam1OtherCriteriaValues.ToArray();
+                    decimal[] initialTeam2OtherCriteriaValuesArray = initialTeam2OtherCriteriaValues.ToArray();
                     for (short i = 1; i <= stage.number_of_groups; i++)
                     {
                         for (short j = 1; j <= stage.number_of_legs_per_round[0]; j++)
@@ -372,6 +391,8 @@ namespace tournament_app_server.Controllers
                                         team_2_score = 0,
                                         team_1_subscores = initialTeam1SubscoresArray,
                                         team_2_subscores = initialTeam2SubscoresArray,
+                                        team_1_other_criteria_values = initialTeam1OtherCriteriaValuesArray,
+                                        team_2_other_criteria_values = initialTeam2OtherCriteriaValuesArray
                                     };
                                     _dbContext.MatchRrs.Add(matchRr);
                                     matchNumber++;
@@ -557,7 +578,7 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        public static void singleEliminationSeeding(List<int[]> pairs, int seed, int level, int limit)
+        public static void SingleEliminationSeeding(List<int[]> pairs, int seed, int level, int limit)
         {
             var levelSum = (int)Math.Pow(2, level) + 1;
 
@@ -568,13 +589,13 @@ namespace tournament_app_server.Controllers
             }
             else if (seed % 2 == 1)
             {
-                singleEliminationSeeding(pairs, seed, level + 1, limit);
-                singleEliminationSeeding(pairs, levelSum - seed, level + 1, limit);
+                SingleEliminationSeeding(pairs, seed, level + 1, limit);
+                SingleEliminationSeeding(pairs, levelSum - seed, level + 1, limit);
             }
             else
             {
-                singleEliminationSeeding(pairs, levelSum - seed, level + 1, limit);
-                singleEliminationSeeding(pairs, seed, level + 1, limit);
+                SingleEliminationSeeding(pairs, levelSum - seed, level + 1, limit);
+                SingleEliminationSeeding(pairs, seed, level + 1, limit);
             }
         }
     }

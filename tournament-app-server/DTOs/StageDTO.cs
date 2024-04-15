@@ -17,8 +17,10 @@
         public short? third_place_match_number_of_legs { get; set; }
         public short? third_place_match_best_of { get; set; }
         public string? description { get; set; }
-        public int? win_point { get; set; }
-        public int? draw_point { get; set; }
-        public int? lose_point { get; set; }
+        public double? win_point { get; set; }
+        public double? draw_point { get; set; }
+        public double? lose_point { get; set; }
+        public string[]? other_criteria_names { get; set; }
+        public string[]? other_criteria_sort_direction { get; set; }
     }
 }
