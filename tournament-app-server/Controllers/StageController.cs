@@ -18,8 +18,8 @@ namespace tournament_app_server.Controllers
             _dbContext = dbContext;
         }
 
-        [HttpGet("all/{tournament_id}/{token?}")]
-        public async Task<ActionResult<IEnumerable<Stage>>> GetStagesByTournamentId(long tournament_id, string token = "")
+        [HttpGet("all/{tournament_id}")]
+        public async Task<ActionResult<IEnumerable<Stage>>> GetStagesByTournamentId(long tournament_id, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Stages == null)
             {
@@ -28,13 +28,17 @@ namespace tournament_app_server.Controllers
 
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var tournament = await _dbContext.Tournaments.FindAsync(tournament_id);
                 if (tournament == null)
                 {
                     return NotFound();
                 }
 
-                if (token == "")
+                if (token.Trim() == "")
                 {
                     if (tournament.is_private == true)
                     {
@@ -64,8 +68,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpGet("{id}/{token?}")]
-        public async Task<ActionResult<Stage>> GetStageById(long id, string token = "")
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Stage>> GetStageById(long id, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Stages == null)
             {
@@ -74,6 +78,10 @@ namespace tournament_app_server.Controllers
 
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var stage = await _dbContext.Stages.FindAsync(id);
                 if (stage == null)
                 {
@@ -85,7 +93,7 @@ namespace tournament_app_server.Controllers
                     return NotFound();
                 }
 
-                if (token == "")
+                if (token.Trim() == "")
                 {
                     if (tournament.is_private == true)
                     {
@@ -112,8 +120,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpPost("{token}")]
-        public async Task<ActionResult<Stage>> CreateStage(string token, [FromBody] StageDTO stageDto)
+        [HttpPost]
+        public async Task<ActionResult<Stage>> CreateStage([FromBody] StageDTO stageDto, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Stages == null)
             {
@@ -121,6 +129,10 @@ namespace tournament_app_server.Controllers
             }
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
@@ -222,6 +234,24 @@ namespace tournament_app_server.Controllers
                 }
                 else if (stage.format_id == 2) //Round robin
                 {
+                    if (stageDto.other_criteria_names != null)
+                    {
+                        if (stageDto.other_criteria_names.Length != stageDto.other_criteria_sort_direction.Length)
+                        {
+                            throw new Exception("Other criteria names length does not equal to other criteria sort direction length.");
+                        }
+                    }
+                    if (stageDto.other_criteria_sort_direction != null)
+                    {
+                        List<string> otherCriteriaSortDirections = new List<string>(["ASC", "DESC"]);
+                        foreach(var sortDirection in stageDto.other_criteria_sort_direction)
+                        {
+                            if (!otherCriteriaSortDirections.Contains(sortDirection))
+                            {
+                                throw new Exception("At least one of other criteria sort direction value is invalid.");
+                            }
+                        }
+                    }
                     if (stageDto.win_point != null)
                     {
                         stage.win_point = (int)stageDto.win_point;
@@ -234,14 +264,8 @@ namespace tournament_app_server.Controllers
                     {
                         stage.lose_point = (int)stageDto.lose_point;
                     }
-                    if (stageDto.other_criteria_names != null)
-                    {
-                        stage.other_criteria_names = stageDto.other_criteria_names;
-                    }
-                    if (stageDto.other_criteria_sort_direction != null)
-                    {
-                        stage.other_criteria_sort_direction = stageDto.other_criteria_sort_direction;
-                    }
+                    stage.other_criteria_names = stageDto.other_criteria_names;
+                    stage.other_criteria_sort_direction = stageDto.other_criteria_sort_direction;
                 }
 
                 _dbContext.Stages.Add(stage);
@@ -411,8 +435,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpPut("{id}/{token}")]
-        public async Task<ActionResult<Stage>> EditStage(long id, string token, [FromBody] StageEditDTO stageEditDto)
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Stage>> EditStage(long id, [FromBody] StageEditDTO stageEditDto, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Stages == null)
             {
@@ -420,6 +444,10 @@ namespace tournament_app_server.Controllers
             }
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
@@ -454,8 +482,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpPut("order/{token}")]
-        public async Task<ActionResult<List<StageOrderDTO>>> EditStageOrder(string token, [FromBody] StageOrderDTO[] stageOrderDto)
+        [HttpPut("order")]
+        public async Task<ActionResult<List<StageOrderDTO>>> EditStageOrder([FromBody] StageOrderDTO[] stageOrderDto, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Stages == null)
             {
@@ -463,6 +491,10 @@ namespace tournament_app_server.Controllers
             }
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
@@ -524,8 +556,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpDelete("{id}/{token}")]
-        public async Task<IActionResult> DeleteStage(long id, string token)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteStage(long id, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Stages == null)
             {
@@ -534,6 +566,10 @@ namespace tournament_app_server.Controllers
 
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];

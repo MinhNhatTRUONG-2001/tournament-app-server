@@ -38,8 +38,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpGet("all/{token}")]
-        public async Task<ActionResult<IEnumerable<Tournament>>> GetTournamentsByUserId(string token)
+        [HttpGet("all")]
+        public async Task<ActionResult<IEnumerable<Tournament>>> GetTournamentsByUserId([FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Tournaments == null)
             {
@@ -48,6 +48,10 @@ namespace tournament_app_server.Controllers
 
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
@@ -62,8 +66,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpGet("{id}/{token?}")]
-        public async Task<ActionResult<Tournament>> GetTournamentById(long id, string token = "")
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Tournament>> GetTournamentById(long id, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Tournaments == null)
             {
@@ -71,13 +75,17 @@ namespace tournament_app_server.Controllers
             }
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var tournament = await _dbContext.Tournaments.FindAsync(id);
                 if (tournament == null)
                 {
                     return NotFound();
                 }
 
-                if (token == "")
+                if (token.Trim() == "")
                 {
                     if (tournament.is_private == true)
                     {
@@ -104,8 +112,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpPost("{token}")]
-        public async Task<ActionResult<Tournament>> CreateTournament(string token, [FromBody] TournamentDTO tournamentDto)
+        [HttpPost]
+        public async Task<ActionResult<Tournament>> CreateTournament([FromBody] TournamentDTO tournamentDto, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Tournaments == null)
             {
@@ -113,6 +121,10 @@ namespace tournament_app_server.Controllers
             }
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
@@ -141,8 +153,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpPut("{id}/{token}")]
-        public async Task<ActionResult<Tournament>> EditTournament(long id, string token, [FromBody] TournamentDTO tournamentDto)
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Tournament>> EditTournament(long id, [FromBody] TournamentDTO tournamentDto, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Tournaments == null)
             {
@@ -150,6 +162,10 @@ namespace tournament_app_server.Controllers
             }
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
@@ -185,8 +201,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpDelete("{id}/{token}")]
-        public async Task<IActionResult> DeleteTournament(long id, string token)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTournament(long id, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.Tournaments == null)
             {
@@ -195,6 +211,10 @@ namespace tournament_app_server.Controllers
 
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];

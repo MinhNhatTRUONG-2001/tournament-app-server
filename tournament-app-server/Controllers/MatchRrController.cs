@@ -19,8 +19,8 @@ namespace tournament_app_server.Controllers
             _dbContext = dbContext;
         }
 
-        [HttpGet("all/{stage_id}/{token?}")]
-        public async Task<ActionResult<IEnumerable<MatchRr>>> GetMatchesByStageId(long stage_id, string token = "")
+        [HttpGet("all/{stage_id}")]
+        public async Task<ActionResult<IEnumerable<MatchRr>>> GetMatchesByStageId(long stage_id, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.MatchRrs == null)
             {
@@ -29,6 +29,10 @@ namespace tournament_app_server.Controllers
 
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var stage = await _dbContext.Stages.FindAsync(stage_id);
                 if (stage == null)
                 {
@@ -40,7 +44,7 @@ namespace tournament_app_server.Controllers
                     return NotFound();
                 }
 
-                if (token == "")
+                if (token.Trim() == "")
                 {
                     if (tournament.is_private == true)
                     {
@@ -69,8 +73,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpGet("{id}/{token?}")]
-        public async Task<ActionResult<MatchRr>> GetMatchById(long id, string token = "")
+        [HttpGet("{id}")]
+        public async Task<ActionResult<MatchRr>> GetMatchById(long id, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.MatchRrs == null)
             {
@@ -79,6 +83,10 @@ namespace tournament_app_server.Controllers
 
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var matchRr = await _dbContext.MatchRrs.FindAsync(id);
                 if (matchRr == null)
                 {
@@ -95,7 +103,7 @@ namespace tournament_app_server.Controllers
                     return NotFound();
                 }
 
-                if (token == "")
+                if (token.Trim() == "")
                 {
                     if (tournament.is_private == true)
                     {
@@ -123,8 +131,8 @@ namespace tournament_app_server.Controllers
         }
 
         
-        [HttpGet("table_results/{stage_id}/{token?}")]
-        public async Task<ActionResult<IEnumerable<MatchRrTableResult>>> GetTableResultsByStageId(long stage_id, string token = "")
+        [HttpGet("table_results/{stage_id}")]
+        public async Task<ActionResult<IEnumerable<MatchRrTableResult>>> GetTableResultsByStageId(long stage_id, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.MatchRrs == null)
             {
@@ -133,6 +141,10 @@ namespace tournament_app_server.Controllers
 
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var stage = await _dbContext.Stages.FindAsync(stage_id);
                 if (stage == null)
                 {
@@ -144,7 +156,7 @@ namespace tournament_app_server.Controllers
                     return NotFound();
                 }
 
-                if (token == "")
+                if (token.Trim() == "")
                 {
                     if (tournament.is_private == true)
                     {
@@ -306,8 +318,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpPut("{id}/team_name/{token}")]
-        public async Task<ActionResult<MatchRr>> EditTeamName(long id, string token, [FromBody] MatchRrEditTeamNameDTO matchRrEditTeamNameDto)
+        [HttpPut("{id}/team_name")]
+        public async Task<ActionResult<MatchRr>> EditTeamName(long id, [FromBody] MatchRrEditTeamNameDTO matchRrEditTeamNameDto, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.MatchRrs == null)
             {
@@ -315,6 +327,10 @@ namespace tournament_app_server.Controllers
             }
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
@@ -379,8 +395,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpPut("{id}/match_info/{token}")]
-        public async Task<ActionResult<MatchRr>> EditMatchInfo(long id, string token, [FromBody] MatchEditMatchInfoDTO matchEditMatchInfoDto)
+        [HttpPut("{id}/match_info")]
+        public async Task<ActionResult<MatchRr>> EditMatchInfo(long id, [FromBody] MatchEditMatchInfoDTO matchEditMatchInfoDto, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.MatchRrs == null)
             {
@@ -388,6 +404,10 @@ namespace tournament_app_server.Controllers
             }
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
@@ -427,8 +447,8 @@ namespace tournament_app_server.Controllers
             }
         }
 
-        [HttpPut("{id}/match_score/{token}")]
-        public async Task<ActionResult<MatchRr>> EditMatchScore(long id, string token, [FromBody] MatchRrEditMatchScoreDTO matchRrEditMatchScoreDto)
+        [HttpPut("{id}/match_score")]
+        public async Task<ActionResult<MatchRr>> EditMatchScore(long id, [FromBody] MatchRrEditMatchScoreDTO matchRrEditMatchScoreDto, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.MatchRrs == null)
             {
@@ -436,6 +456,10 @@ namespace tournament_app_server.Controllers
             }
             try
             {
+                if (token.Contains("Bearer "))
+                {
+                    token = token.Split("Bearer ")[1];
+                }
                 var decodedToken = TokenValidation.ValidateToken(token);
                 var payload = decodedToken.Payload;
                 int userId = (int)payload["id"];
