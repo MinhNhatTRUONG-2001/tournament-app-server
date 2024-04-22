@@ -131,8 +131,8 @@ namespace tournament_app_server.Controllers
         }
 
         
-        [HttpGet("table_results/{stage_id}")]
-        public async Task<ActionResult<IEnumerable<MatchRrTableResult>>> GetTableResultsByStageId(long stage_id, [FromHeader(Name = "Authorization")] string token = "")
+        [HttpGet("table_results/{stage_id}/{group_number}")]
+        public async Task<ActionResult<IEnumerable<MatchRrTableResult>>> GetTableResultsByStageIdAndGroupNumber(long stage_id, int group_number, [FromHeader(Name = "Authorization")] string token = "")
         {
             if (_dbContext.MatchRrs == null)
             {
@@ -175,26 +175,34 @@ namespace tournament_app_server.Controllers
                     }
                 }
 
-                List<MatchRrTableResult> tableResults = new List<MatchRrTableResult>();
-                for (int i = 1; i <= stage.number_of_groups; i++)
+                if (group_number < 1 || group_number > stage.number_of_groups)
                 {
-                    var groupMatchRrs = await _dbContext.MatchRrs
-                        .Where(mrr => mrr.stage_id == stage_id && mrr.group_number == i)
-                        .ToListAsync();
-                    var distinctTeamNames = groupMatchRrs
-                        .Select(mrr => new List<string> { mrr.team_1, mrr.team_2 })
-                        .SelectMany(x => x)
-                        .Distinct()
+                    throw new Exception("Invalid group number.");
+                }
+                List<MatchRrTableResult> tableResults = new List<MatchRrTableResult>();
+                var groupMatchRrs = await _dbContext.MatchRrs
+                    .Where(mrr => mrr.stage_id == stage_id && mrr.group_number == group_number)
+                    .ToListAsync();
+                var distinctTeamNames = groupMatchRrs
+                    .Select(mrr => new List<string> { mrr.team_1, mrr.team_2 })
+                    .SelectMany(x => x)
+                    .Distinct()
+                    .ToList();
+                //Calculate total points, difference, accumulated/earned score and other criteria value for each team
+                for (int j = 0; j < distinctTeamNames.Count; j++)
+                {
+                    var teamMatchRrs = groupMatchRrs
+                        .Where(mrr => mrr.team_1 == distinctTeamNames[j] || mrr.team_2 == distinctTeamNames[j])
                         .ToList();
-                    //Calculate total points, difference, accumulated/earned score and other criteria value for each team
-                    for (int j = 0; j < distinctTeamNames.Count; j++)
+                    //Calculate total points
+                    decimal totalPoints = 0;
+                    foreach (var mrr in teamMatchRrs)
                     {
-                        var teamMatchRrs = groupMatchRrs
-                            .Where(mrr => mrr.team_1 == distinctTeamNames[j] || mrr.team_2 == distinctTeamNames[j])
-                            .ToList();
-                        //Calculate total points
-                        decimal totalPoints = 0;
-                        foreach (var mrr in teamMatchRrs)
+                        if (mrr.winner == null)
+                        {
+                            continue;
+                        }
+                        else
                         {
                             if (mrr.team_1 == distinctTeamNames[j])
                             {
@@ -227,62 +235,62 @@ namespace tournament_app_server.Controllers
                                 }
                             }
                         }
-                        //Calculate difference
-                        decimal difference = 0;
-                        foreach (var mrr in teamMatchRrs)
-                        {
-                            if (mrr.team_1 == distinctTeamNames[j])
-                            {
-                                difference += (decimal)mrr.team_1_score - (decimal)mrr.team_2_score;
-                            }
-                            else if (mrr.team_2 == distinctTeamNames[j])
-                            {
-                                difference += (decimal)mrr.team_2_score - (decimal)mrr.team_1_score;
-                            }
-                        }
-                        //Calculate accumulated/earned score
-                        decimal accumulatedScore = 0;
-                        foreach (var mrr in teamMatchRrs)
-                        {
-                            if (mrr.team_1 == distinctTeamNames[j])
-                            {
-                                accumulatedScore += (decimal)mrr.team_1_score;
-                            }
-                            else if (mrr.team_2 == distinctTeamNames[j])
-                            {
-                                accumulatedScore += (decimal)mrr.team_2_score;
-                            }
-                        }
-                        //Calculate other criteria values
-                        List<decimal> otherCriteriaValues = new List<decimal>();
-                        if (stage.other_criteria_names != null)
-                        {
-                            for (int k = 0; k < stage.other_criteria_names.Length; i++)
-                            {
-                                decimal criteriaValue = 0;
-                                foreach (var mrr in teamMatchRrs)
-                                {
-                                    if (mrr.team_1 == distinctTeamNames[j])
-                                    {
-                                        criteriaValue += mrr.team_1_other_criteria_values[k];
-                                    }
-                                    else if (mrr.team_2 == distinctTeamNames[j])
-                                    {
-                                        criteriaValue += mrr.team_2_other_criteria_values[k];
-                                    }
-                                }
-                                otherCriteriaValues.Add(criteriaValue);
-                            }
-                        }
-
-                        tableResults.Add(new MatchRrTableResult { 
-                            name = distinctTeamNames[j],
-                            points = totalPoints,
-                            difference = difference,
-                            accumulated_score = accumulatedScore,
-                            other_criteria_values = otherCriteriaValues.ToArray()
-                        });
                     }
+                    //Calculate difference
+                    decimal difference = 0;
+                    foreach (var mrr in teamMatchRrs)
+                    {
+                        if (mrr.team_1 == distinctTeamNames[j])
+                        {
+                            difference += (decimal)mrr.team_1_score - (decimal)mrr.team_2_score;
+                        }
+                        else if (mrr.team_2 == distinctTeamNames[j])
+                        {
+                            difference += (decimal)mrr.team_2_score - (decimal)mrr.team_1_score;
+                        }
+                    }
+                    //Calculate accumulated/earned score
+                    decimal accumulatedScore = 0;
+                    foreach (var mrr in teamMatchRrs)
+                    {
+                        if (mrr.team_1 == distinctTeamNames[j])
+                        {
+                            accumulatedScore += (decimal)mrr.team_1_score;
+                        }
+                        else if (mrr.team_2 == distinctTeamNames[j])
+                        {
+                            accumulatedScore += (decimal)mrr.team_2_score;
+                        }
+                    }
+                    //Calculate other criteria values
+                    List<decimal> otherCriteriaValues = new List<decimal>();
+                    if (stage.other_criteria_names != null)
+                    {
+                        for (int k = 0; k < stage.other_criteria_names.Length; k++)
+                        {
+                            decimal criteriaValue = 0;
+                            foreach (var mrr in teamMatchRrs)
+                            {
+                                if (mrr.team_1 == distinctTeamNames[j])
+                                {
+                                    criteriaValue += mrr.team_1_other_criteria_values[k];
+                                }
+                                else if (mrr.team_2 == distinctTeamNames[j])
+                                {
+                                    criteriaValue += mrr.team_2_other_criteria_values[k];
+                                }
+                            }
+                            otherCriteriaValues.Add(criteriaValue);
+                        }
+                    }
+
+                    tableResults.Add(new MatchRrTableResult { 
+                        name = distinctTeamNames[j],
+                        points = totalPoints,
+                        difference = difference,
+                        accumulated_score = accumulatedScore,
+                        other_criteria_values = otherCriteriaValues.ToArray()
+                    });
                 }
 
                 //Sort table results
