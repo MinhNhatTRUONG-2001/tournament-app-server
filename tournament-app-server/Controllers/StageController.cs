@@ -598,15 +598,24 @@ namespace tournament_app_server.Controllers
                     }
                     await _dbContext.SaveChangesAsync();
 
-                    var matchSes = await _dbContext.MatchSes
-                        .Where(mse => mse.stage_id == id)
-                        .ToListAsync();
-                    _dbContext.MatchSes.RemoveRange(matchSes);
+                    if (stage.format_id == 1) //Single elimination
+                    {
+                        var matchSes = await _dbContext.MatchSes
+                            .Where(mse => mse.stage_id == id)
+                            .ToListAsync();
+                        _dbContext.MatchSes.RemoveRange(matchSes);
+                    }
+                    else if (stage.format_id == 2) //Round robin
+                    {
+                        var matchRrs = await _dbContext.MatchRrs
+                            .Where(mrr => mrr.stage_id == id)
+                            .ToListAsync();
+                        _dbContext.MatchRrs.RemoveRange(matchRrs);
+                    }
                     _dbContext.Stages.Remove(stage);
                     await _dbContext.SaveChangesAsync();
                     return NoContent();
                 }
-                
             }
             catch (Exception ex)
             {

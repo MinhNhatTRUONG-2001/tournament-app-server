@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using tournament_app_server.DTOs;
 using tournament_app_server.Models;
 
@@ -188,7 +187,7 @@ namespace tournament_app_server.Controllers
                     .SelectMany(x => x)
                     .Distinct()
                     .ToList();
-                //Calculate total points, difference, accumulated/earned score and other criteria value for each team
+                //Calculate total points, difference, accumulated/earned score and other criteria values for each team
                 for (int j = 0; j < distinctTeamNames.Count; j++)
                 {
                     var teamMatchRrs = groupMatchRrs
@@ -206,30 +205,30 @@ namespace tournament_app_server.Controllers
                         {
                             if (mrr.team_1 == distinctTeamNames[j])
                             {
-                                if (mrr.team_1_score > mrr.team_2_score)
+                                if (mrr.winner == mrr.team_1)
                                 {
                                     totalPoints += stage.win_point;
                                 }
-                                else if (mrr.team_1_score < mrr.team_2_score)
+                                else if (mrr.winner == mrr.team_2)
                                 {
                                     totalPoints += stage.lose_point;
                                 }
-                                else
+                                else if (mrr.winner == " ")
                                 {
                                     totalPoints += stage.draw_point;
                                 }
                             }
                             else if (mrr.team_2 == distinctTeamNames[j])
                             {
-                                if (mrr.team_2_score > mrr.team_1_score)
+                                if (mrr.winner == mrr.team_2)
                                 {
                                     totalPoints += stage.win_point;
                                 }
-                                else if (mrr.team_2_score < mrr.team_1_score)
+                                else if (mrr.winner == mrr.team_1)
                                 {
                                     totalPoints += stage.lose_point;
                                 }
-                                else
+                                else if (mrr.winner == " ")
                                 {
                                     totalPoints += stage.draw_point;
                                 }
