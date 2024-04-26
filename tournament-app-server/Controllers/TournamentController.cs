@@ -233,14 +233,14 @@ namespace tournament_app_server.Controllers
                     .ToListAsync();
                 foreach (var s in stages)
                 {
-                    if (s.format_id == 1) //Single elimination
+                    if (s.format_id == (short)StageFormats.SingleElimination)
                     {
                         var matchSes = await _dbContext.MatchSes
                             .Where(mse => mse.stage_id == s.id)
                             .ToListAsync();
                         _dbContext.MatchSes.RemoveRange(matchSes);
                     }
-                    else if (s.format_id == 2) //Round robin
+                    else if (s.format_id == (short)StageFormats.RoundRobin)
                     {
                         var matchRrs = await _dbContext.MatchRrs
                             .Where(mrr => mrr.stage_id == s.id)

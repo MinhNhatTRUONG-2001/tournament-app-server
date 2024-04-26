@@ -4,6 +4,11 @@ using tournament_app_server.DTOs;
 using tournament_app_server.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+public enum StageFormats
+{
+    SingleElimination = 1,
+    RoundRobin
+}
 
 namespace tournament_app_server.Controllers
 {
@@ -167,7 +172,7 @@ namespace tournament_app_server.Controllers
                     .Select(s => (short?)s.stage_order)
                     .MaxAsync();
                 short currentMaxStageOrder = maxStageOrder ?? 0;
-                if (stage.format_id == 1) //Single elimination
+                if (stage.format_id == (short)StageFormats.SingleElimination)
                 {
                     numberOfRoundsSe = (short)Math.Ceiling(Math.Log2(stageDto.number_of_teams_per_group));
                     idealNumberOfTeamsPerGroupSe = (short)Math.Pow(2, numberOfRoundsSe);
@@ -180,7 +185,7 @@ namespace tournament_app_server.Controllers
                         throw new Exception("Invalid number_of_teams_per_group.");
                     }
                 }
-                else if (stage.format_id == 2) { //Round robin
+                else if (stage.format_id == (short)StageFormats.RoundRobin) {
                     if (stageDto.number_of_teams_per_group >= 2 && stageDto.number_of_teams_per_group <= 32)
                     {
                         stage.number_of_teams_per_group = stageDto.number_of_teams_per_group;
@@ -222,7 +227,7 @@ namespace tournament_app_server.Controllers
                 stage.best_of_per_round = stageDto.best_of_per_round;
                 stage.description = stageDto.description;
 
-                if (stage.format_id == 1) //Single elimination
+                if (stage.format_id == (short)StageFormats.SingleElimination)
                 {
                     stage.include_third_place_match = stageDto.include_third_place_match;
                     if (stageDto.third_place_match_number_of_legs < 1 || stageDto.third_place_match_number_of_legs > 3)
@@ -232,7 +237,7 @@ namespace tournament_app_server.Controllers
                     stage.third_place_match_number_of_legs = stageDto.third_place_match_number_of_legs;
                     stage.third_place_match_best_of = stageDto.third_place_match_best_of;
                 }
-                else if (stage.format_id == 2) //Round robin
+                else if (stage.format_id == (short)StageFormats.RoundRobin)
                 {
                     if (stageDto.other_criteria_names != null)
                     {
@@ -271,7 +276,7 @@ namespace tournament_app_server.Controllers
                 _dbContext.Stages.Add(stage);
                 await _dbContext.SaveChangesAsync();
 
-                if (stage.format_id == 1) //Single elimination
+                if (stage.format_id == (short)StageFormats.SingleElimination)
                 {
                     List<int[]> seedingPairs = new List<int[]>();
                     SingleEliminationSeeding(seedingPairs, 1, 1, numberOfRoundsSe + 1);
@@ -370,7 +375,7 @@ namespace tournament_app_server.Controllers
                     }
                     await _dbContext.SaveChangesAsync();
                 }
-                else if (stage.format_id == 2) //Round robin
+                else if (stage.format_id == (short)StageFormats.RoundRobin)
                 {
                     List<decimal> initialTeam1Subscores = new List<decimal>(), initialTeam2Subscores = new List<decimal>();
                     if (stage.best_of_per_round[0] > 0)
@@ -598,14 +603,14 @@ namespace tournament_app_server.Controllers
                     }
                     await _dbContext.SaveChangesAsync();
 
-                    if (stage.format_id == 1) //Single elimination
+                    if (stage.format_id == (short)StageFormats.SingleElimination)
                     {
                         var matchSes = await _dbContext.MatchSes
                             .Where(mse => mse.stage_id == id)
                             .ToListAsync();
                         _dbContext.MatchSes.RemoveRange(matchSes);
                     }
-                    else if (stage.format_id == 2) //Round robin
+                    else if (stage.format_id == (short)StageFormats.RoundRobin)
                     {
                         var matchRrs = await _dbContext.MatchRrs
                             .Where(mrr => mrr.stage_id == id)
