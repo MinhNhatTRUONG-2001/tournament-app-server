@@ -1,5 +1,9 @@
 # Tournament Management Mobile Application - Tournament Data Server
 This server is responsible for tournament data management, including tournament & stage creation, match generation, match & stage results calculation and update, and more. The server communicates mainly with the `data` schema in the PostgreSQL database.
+In the code, "Rr" stand for "Round Robin", and "Se" stand for "Single Elimination".
+## Environment variables
+After cloning this project, please add the following variables in the `environmentVariables` section in the launchSettings.json:
+- JWT_SECRET_KEY: The secret key string for encoding and decoding JWT tokens.
 ## Database schema
 ![Database schema](https://drive.google.com/thumbnail?id=13SmD8vU9qfhLpsRa0FEM-rZPTxkGYXts&sz=w1000)
 ## List of endpoints
