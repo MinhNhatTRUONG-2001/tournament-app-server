@@ -291,8 +291,8 @@ namespace tournament_app_server.Controllers
                                 string team1Name = null, team2Name = null;
                                 if (j == 1)
                                 {
-                                    team1Name = "G" + i.ToString() + "-T" + seedingPairs[k][0].ToString();
-                                    team2Name = "G" + i.ToString() + "-T" + seedingPairs[k][1].ToString();
+                                    team1Name = "G" + i.ToString() + "-T" + seedingPairs[k - 1][0].ToString();
+                                    team2Name = "G" + i.ToString() + "-T" + seedingPairs[k - 1][1].ToString();
                                 }
                                 List<decimal> initialTeam1Scores = new List<decimal>(), initialTeam2Scores = new List<decimal>();
                                 for (int a = 0; a < stage.number_of_legs_per_round[j - 1]; a++)

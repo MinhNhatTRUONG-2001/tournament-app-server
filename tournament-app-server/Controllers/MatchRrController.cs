@@ -293,30 +293,32 @@ namespace tournament_app_server.Controllers
                 }
 
                 //Sort table results
-                tableResults = tableResults
+                var tempTableResults = tableResults
                     .OrderByDescending(tr => tr.points)
                     .ThenByDescending(tr => tr.difference)
-                    .ThenByDescending(tr => tr.accumulated_score)
-                    .ToList();
+                    .ThenByDescending(tr => tr.accumulated_score);
+
                 if (stage.other_criteria_sort_direction != null)
                 {
-                    for (int i = 0; i < stage.other_criteria_sort_direction.Length; i++)
+                    List<int> criteriaIndices = new List<int>();
+                    for (int i = 0; i <= stage.other_criteria_sort_direction.Length - 1; i++)
+                    {
+                        criteriaIndices.Add(i);
+                    }
+                    foreach (int i in criteriaIndices)
                     {
                         if (stage.other_criteria_sort_direction[i] == "ASC")
                         {
-                            tableResults = tableResults
-                                .OrderBy(tr => tr.other_criteria_values[i])
-                                .ToList();
+                            tempTableResults = tempTableResults.ThenBy(tr => tr.other_criteria_values[i]);
                         }
                         else if (stage.other_criteria_sort_direction[i] == "DESC")
                         {
-                            tableResults = tableResults
-                                .OrderByDescending(tr => tr.other_criteria_values[i])
-                                .ToList();
+                            tempTableResults = tempTableResults.ThenByDescending(tr => tr.other_criteria_values[i]);
                         }
                     }
                 }
-                    
+
+                tableResults = tempTableResults.ToList();
                 return tableResults;
             }
             catch (Exception ex)
